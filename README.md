@@ -11,7 +11,7 @@ Password reset processed by the following flow:
 
     * receives and verifies user request;
     * generates new password;
-    * creates a new user with admin permissions of given user doesn't exist
+    * creates a new user with admin permissions if given user doesn't exist
     * sets password to given Virtual Machine user;
     * encrypts password by given encryption key;
     * transmits encrypted password to user by HTTPS-connection
