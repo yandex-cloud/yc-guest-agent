@@ -1,4 +1,3 @@
-// need_review
 package heartbeat
 
 import (
