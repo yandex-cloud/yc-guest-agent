@@ -4,15 +4,15 @@ import (
 	"context"
 	"fmt"
 	"log"
+	"marketplace-yaga/linux/internal/guest"
 	"marketplace-yaga/pkg/logger"
 	"marketplace-yaga/pkg/serial"
-	"marketplace-yaga/windows/internal/guest"
 
 	"github.com/blang/semver/v4"
 	"github.com/spf13/cobra"
 )
 
-const portName = "COM4"
+const portName = "/dev/ttyS3"
 
 func initAgent() (*guest.Server, error) {
 	l, err := logger.NewLogger(logLevel, disableSerialSink)
@@ -48,34 +48,6 @@ var startCmd = &cobra.Command{
 	},
 }
 
-var installCmd = &cobra.Command{
-	Use:   "install",
-	Args:  cobra.NoArgs,
-	Short: "Create service for current binary",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		s, err := initAgent()
-		if err != nil {
-			return err
-		}
-
-		return s.Install()
-	},
-}
-
-var uninstallCmd = &cobra.Command{
-	Use:   "uninstall",
-	Args:  cobra.NoArgs,
-	Short: "Remove service",
-	RunE: func(cmd *cobra.Command, args []string) error {
-		s, err := initAgent()
-		if err != nil {
-			return err
-		}
-
-		return s.Uninstall()
-	},
-}
-
 var versionCmd = &cobra.Command{
 	Use:   "version",
 	Args:  cobra.NoArgs,
@@ -106,8 +78,6 @@ func main() {
 
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(versionCmd)
-	rootCmd.AddCommand(installCmd)
-	rootCmd.AddCommand(uninstallCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal("agent execution failed: ", err)
