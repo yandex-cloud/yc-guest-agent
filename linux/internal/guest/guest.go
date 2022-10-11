@@ -3,7 +3,7 @@ package guest
 import (
 	"context"
 	"errors"
-	"marketplace-yaga/linux/internal/handlers/users"
+	"marketplace-yaga/linux/internal/handlers/sshkeys"
 	"marketplace-yaga/pkg/heartbeat"
 	"marketplace-yaga/pkg/logger"
 	"marketplace-yaga/pkg/meta"
@@ -32,7 +32,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 
 	s := Server{}
 
-	l := logger.L(ctx).With(zap.String("server", "linux"))
+	l := logger.FromContext(ctx).With(zap.String("server", "linux"))
 	s.ctx, s.cancel = context.WithCancel(logger.NewContext(ctx, l))
 
 	return &s, nil
@@ -83,7 +83,7 @@ func startUserChangeMetadataWatcher(ctx context.Context) {
 	w := meta.NewMetadataWatcher(ctx)
 
 	logger.DebugCtx(ctx, nil, "add metadata watcher")
-	w.AddWatch(users.DefaultMetadataURL, users.NewUserHandle())
+	w.AddWatch(sshkeys.DefaultMetadataURL, sshkeys.NewUserHandle())
 }
 
 var ErrStopTimeout = errors.New("timeout stopping service")

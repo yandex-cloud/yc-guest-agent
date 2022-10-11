@@ -1,3 +1,6 @@
+# github.com/alessio/shellescape v1.4.1
+## explicit
+github.com/alessio/shellescape
 # github.com/blang/semver/v4 v4.0.0
 ## explicit
 github.com/blang/semver/v4
@@ -12,6 +15,9 @@ github.com/go-resty/resty/v2
 # github.com/gofrs/uuid v4.2.0+incompatible
 ## explicit
 github.com/gofrs/uuid
+# github.com/google/uuid v1.1.2
+## explicit
+github.com/google/uuid
 # github.com/inconshreveable/mousetrap v1.0.0
 github.com/inconshreveable/mousetrap
 # github.com/jarcoal/httpmock v1.0.8

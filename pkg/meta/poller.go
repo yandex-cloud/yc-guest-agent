@@ -65,7 +65,7 @@ var ErrStatusNotOK = errors.New("received non 200 response")
 const pollerTimeout = 60 * time.Second
 
 func (p *Poller) get(ctx context.Context) ([]byte, error) {
-	ctx = logger.NewContext(ctx, logger.L(ctx).With(
+	ctx = logger.NewContext(ctx, logger.FromContext(ctx).With(
 		zap.String("url", p.url),
 		zap.String("etag", p.lastETag)))
 

@@ -1,4 +1,4 @@
-package users
+package sshkeys
 
 import (
 	"github.com/stretchr/testify/mock"

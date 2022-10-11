@@ -74,8 +74,8 @@ type key int
 
 var loggerKey key
 
-// L return logger which is stored in given context or noop logger if no logger is found.
-func L(ctx context.Context) *zap.Logger {
+// FromContext return logger which is stored in given context or noop logger if no logger is found.
+func FromContext(ctx context.Context) *zap.Logger {
 	if ctx == nil {
 		return zap.NewNop()
 	}
@@ -98,7 +98,7 @@ const callerSkipNum = 2
 var errOptions = []zap.Option{zap.AddCallerSkip(callerSkipNum), zap.AddCaller(), zap.AddStacktrace(zapcore.DebugLevel)}
 
 func DebugCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
-	l := L(ctx)
+	l := FromContext(ctx)
 	if err != nil {
 		l = l.WithOptions(errOptions...)
 	}
@@ -107,11 +107,12 @@ func DebugCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
 }
 
 func InfoCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
-	log(L(ctx).With(zap.Error(err)), msg, zapcore.InfoLevel, fields...)
+	log(FromContext(ctx).With(zap.Error(err)), msg, zapcore.InfoLevel, fields...)
 }
 
+//goland:noinspection GoUnusedExportedFunction
 func FatalCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
-	log(L(ctx).With(zap.Error(err)), msg, zapcore.InfoLevel, fields...)
+	log(FromContext(ctx).With(zap.Error(err)), msg, zapcore.InfoLevel, fields...)
 	os.Exit(1)
 }
 

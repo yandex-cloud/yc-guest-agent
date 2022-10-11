@@ -1,16 +1,18 @@
-package users
+package sshkeys
+
+import "marketplace-yaga/linux/internal/usermanager"
 
 const UserUpdateSshKeysResponseType = "UserUpdateSshKeys"
 
 // response is struct which converted to json and passed to COM port as result of user_handle execution.
 type response struct {
-	Users   []User
+	Users   []usermanager.User
 	Success bool
 	Error   string
 }
 
 // withUsers add parsed users to resulting response.
-func (res *response) withUsers(users []User) *response {
+func (res *response) withUsers(users []usermanager.User) *response {
 	res.Users = users
 
 	return res

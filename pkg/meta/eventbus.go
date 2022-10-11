@@ -34,7 +34,7 @@ func NewMetadataWatcher(ctx context.Context) *MetadataWatcher {
 }
 
 func (w *MetadataWatcher) AddWatch(url string, handler MetadataChangeHandler) {
-	ctx := logger.NewContext(w.ctx, logger.L(w.ctx).With(zap.Stringer("event", handler)))
+	ctx := logger.NewContext(w.ctx, logger.FromContext(w.ctx).With(zap.Stringer("event", handler)))
 
 	logger.InfoCtx(ctx, nil, "start metadata watch")
 	poller := NewPoller(url)
