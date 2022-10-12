@@ -4,12 +4,13 @@ import (
 	"context"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
+	"io"
 	"marketplace-yaga/pkg/logger"
 	"os"
 	"path"
 )
 
-func WriteFile(ctx context.Context, fs afero.Fs, filepath string, content []byte) error {
+func WriteFile(ctx context.Context, fs afero.Fs, filepath string, content io.Reader) error {
 	logOpts := []zap.Field{
 		zap.String("filepath", filepath),
 	}
@@ -26,7 +27,13 @@ func WriteFile(ctx context.Context, fs afero.Fs, filepath string, content []byte
 		return err
 	}
 
-	_, err = file.Write(content)
+	var data []byte
+	_, err = content.Read(data)
+	if err != nil {
+		return err
+	}
+
+	_, err = file.Write(data)
 	logger.DebugCtx(ctx, err, "written the content", logOpts...)
 	if err != nil {
 		return err

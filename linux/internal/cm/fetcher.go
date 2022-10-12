@@ -1,6 +1,7 @@
 package cm
 
 import (
+	"bytes"
 	"context"
 	"github.com/spf13/afero"
 	"marketplace-yaga/linux/internal/persistance"
@@ -39,11 +40,12 @@ type CertificateMetadataMessage = map[string]Certificate
 func (m *Manager) HandleCertificates(msg CertificateMetadataMessage) ([]string, error) {
 	var files []string
 	for filepath, cert := range msg {
-		plaintext, err := m.client.Fetch(cert.CertificateId)
+		certContent, err := m.client.Fetch(cert.CertificateId)
 		if err != nil {
 			return nil, err
 		}
-		err = persistance.WriteFile(m.ctx, m.fs, filepath, plaintext)
+
+		err = persistance.WriteFile(m.ctx, m.fs, filepath, bytes.NewReader(certContent))
 		if err != nil {
 			return nil, err
 		}

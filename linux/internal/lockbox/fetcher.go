@@ -1,6 +1,7 @@
 package lockbox
 
 import (
+	"bytes"
 	"context"
 	"github.com/spf13/afero"
 	"marketplace-yaga/linux/internal/persistance"
@@ -44,7 +45,8 @@ func (m *Manager) HandleSecrets(msg SecretMetadataMessage) ([]string, error) {
 		if err != nil {
 			return nil, err
 		}
-		err = persistance.WriteFile(m.ctx, m.fs, filepath, plaintext)
+
+		err = persistance.WriteFile(m.ctx, m.fs, filepath, bytes.NewReader(plaintext))
 		if err != nil {
 			return nil, err
 		}
