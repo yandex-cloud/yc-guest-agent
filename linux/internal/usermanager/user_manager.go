@@ -22,8 +22,8 @@ import (
 )
 
 type User struct {
-	Name   string
-	SshKey string
+	Name   string `json:"name"`
+	SshKey string `json:"sshKey"`
 }
 
 type Manager struct {

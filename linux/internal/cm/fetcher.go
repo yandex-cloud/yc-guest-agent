@@ -1,4 +1,4 @@
-package kms
+package cm
 
 import (
 	"context"
@@ -6,10 +6,14 @@ import (
 	"marketplace-yaga/linux/internal/persistance"
 )
 
+type certifiateClient interface {
+	Fetch(certificateId string) ([]byte, error)
+}
+
 type Manager struct {
 	ctx    context.Context
 	fs     afero.Fs
-	client KmsClient
+	client certifiateClient
 }
 
 func New(ctx context.Context) *Manager {
@@ -26,17 +30,16 @@ func newManager(ctx context.Context) *Manager {
 	}
 }
 
-type Secret struct {
-	KeyId      string `json:"keyId"`
-	Ciphertext string `json:"ciphertext"`
+type Certificate struct {
+	CertificateId string `json:"certificateId"`
 }
 
-type SecretMetadataMessage = map[string]Secret
+type CertificateMetadataMessage = map[string]Certificate
 
-func (m *Manager) HandleSecrets(msg SecretMetadataMessage) ([]string, error) {
+func (m *Manager) HandleCertificates(msg CertificateMetadataMessage) ([]string, error) {
 	var files []string
-	for filepath, secret := range msg {
-		plaintext, err := m.client.Decode(secret.KeyId, secret.Ciphertext)
+	for filepath, cert := range msg {
+		plaintext, err := m.client.Fetch(cert.CertificateId)
 		if err != nil {
 			return nil, err
 		}

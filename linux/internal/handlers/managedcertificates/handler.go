@@ -1,4 +1,4 @@
-package kmssecrets
+package managedcertificates
 
 import (
 	"bytes"
@@ -7,7 +7,7 @@ import (
 	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
-	"marketplace-yaga/linux/internal/kms"
+	"marketplace-yaga/linux/internal/cm"
 	"marketplace-yaga/pkg/logger"
 	"marketplace-yaga/pkg/messages"
 	"marketplace-yaga/pkg/serial"
@@ -17,31 +17,31 @@ import (
 )
 
 // handlerName contain name of that handler.
-const handlerName = "kms_secrets_handler"
+const handlerName = "managed_certificates_handler"
 
 // DefaultMetadataURL contain URL which polled for User change requests.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/kms-secrets"
+const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/managed-certificates"
 
 // serialPort is interface for read or write to serial port.
 var serialPort = serial.NewBlockingWriter()
 
-// KmsHandler is struct, that implements needed methods for MetadataChangeHandler interface.
-type KmsHandler struct{}
+// ManagedCertificatesHandler is struct, that implements needed methods for MetadataChangeHandler interface.
+type ManagedCertificatesHandler struct{}
 
-// NewKmsHandler return instance of KmsHandler.
-func NewKmsHandler() *KmsHandler {
-	return &KmsHandler{}
+// CertificatesHandler return instance of ManagedCertificatesHandler.
+func CertificatesHandler() *ManagedCertificatesHandler {
+	return &ManagedCertificatesHandler{}
 }
 
 // String returns name of handler.
-func (h *KmsHandler) String() string {
+func (h *ManagedCertificatesHandler) String() string {
 	return handlerName
 }
 
 var lastProcessedSha []byte
 
-// Handle passes 'User change or creation' request to 'processRequest' function and writes result to serial port.
-func (h *KmsHandler) Handle(ctx context.Context, data []byte) {
+// Handle passes mapping of ManagedCertificates secrets on file paths to 'process' function and writes result to serial port.
+func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
 	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
@@ -62,7 +62,7 @@ func (h *KmsHandler) Handle(ctx context.Context, data []byte) {
 
 	// unwrap to get envelope
 	var e = messages.NewEnvelope()
-	e.WithTimestamp(time.Now()).WithType(KmsSecretsResponseType)
+	e.WithTimestamp(time.Now()).WithType(ManagedCertificatesResponseType)
 
 	err = serialPort.WriteJSON(e.Wrap(resp))
 	logger.DebugCtx(ctx, err, "writing to serial port",
@@ -88,25 +88,25 @@ func process(ctx context.Context, data []byte) (res response, err error) {
 		return
 	}
 
-	mngr := kms.New(ctx)
+	mngr := cm.New(ctx)
 	msg, err := parse(data)
-	logger.DebugCtx(ctx, err, "parsing users from metadata")
+	logger.DebugCtx(ctx, err, "parsing certificates from metadata")
 	if err != nil {
 		return
 	}
 
-	files, err := mngr.HandleSecrets(msg)
+	files, err := mngr.HandleCertificates(msg)
 	if err != nil {
 		return response{}, err
 	}
 
-	res.withSuccess().withFiles(files)
+	res.withSuccess().withCertificates(files)
 
 	return
 }
 
-func parse(data []byte) (kms.SecretMetadataMessage, error) {
-	var msg kms.SecretMetadataMessage
+func parse(data []byte) (cm.CertificateMetadataMessage, error) {
+	var msg cm.CertificateMetadataMessage
 	err := json.Unmarshal(data, &msg)
 	if err != nil {
 		return nil, err

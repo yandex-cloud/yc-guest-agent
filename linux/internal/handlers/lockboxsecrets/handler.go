@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"crypto/sha256"
+	"encoding/json"
 	"fmt"
 	"go.uber.org/zap"
 	"marketplace-yaga/linux/internal/lockbox"
@@ -51,8 +52,13 @@ func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 		return
 	}
 
+	msg, err := parse(data)
+	if err != nil {
+		return
+	}
+
 	var resp response
-	resp, err = process(ctx, data)
+	resp, err = process(ctx, msg)
 	logger.DebugCtx(ctx, err, "processed request")
 	// wont spam to serial port on equal requests
 
@@ -73,8 +79,17 @@ func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 	lastProcessedSha = dataSha[:]
 }
 
+func parse(data []byte) (lockbox.SecretMetadataMessage, error) {
+	var msg lockbox.SecretMetadataMessage
+	err := json.Unmarshal(data, &msg)
+	if err != nil {
+		return nil, err
+	}
+	return msg, nil
+}
+
 //nolint:nakedret
-func process(ctx context.Context, data []byte) (res response, err error) {
+func process(ctx context.Context, msg lockbox.SecretMetadataMessage) (res response, err error) {
 	defer func() {
 		if err != nil {
 			res.withError(err)
@@ -88,7 +103,6 @@ func process(ctx context.Context, data []byte) (res response, err error) {
 	}
 
 	mngr := lockbox.New(ctx)
-	msg, err := mngr.Parse(data)
 	logger.DebugCtx(ctx, err, "parsing users from metadata")
 	if err != nil {
 		return

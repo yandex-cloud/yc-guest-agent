@@ -6,9 +6,9 @@ const UserUpdateSshKeysResponseType = "UserUpdateSshKeys"
 
 // response is struct which converted to json and passed to COM port as result of user_handle execution.
 type response struct {
-	Users   []usermanager.User
-	Success bool
-	Error   string
+	Users   []usermanager.User `json:"users"`
+	Success bool               `json:"success"`
+	Error   string             `json:"error"`
 }
 
 // withUsers add parsed users to resulting response.

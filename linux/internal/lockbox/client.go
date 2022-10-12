@@ -9,10 +9,6 @@ import (
 	"marketplace-yaga/pkg/logger"
 )
 
-type LockboxClient interface {
-	Fetch(secretId string, key string) ([]byte, error)
-}
-
 type YcClient struct {
 	ctx context.Context
 	sdk *ycsdk.SDK
