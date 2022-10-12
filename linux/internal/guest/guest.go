@@ -3,6 +3,7 @@ package guest
 import (
 	"context"
 	"errors"
+	"marketplace-yaga/linux/internal/handlers/kmssecrets"
 	"marketplace-yaga/linux/internal/handlers/sshkeys"
 	"marketplace-yaga/pkg/heartbeat"
 	"marketplace-yaga/pkg/logger"
@@ -83,7 +84,8 @@ func startUserChangeMetadataWatcher(ctx context.Context) {
 	w := meta.NewMetadataWatcher(ctx)
 
 	logger.DebugCtx(ctx, nil, "add metadata watcher")
-	w.AddWatch(sshkeys.DefaultMetadataURL, sshkeys.NewUserHandle())
+	w.AddWatch(sshkeys.DefaultMetadataURL, sshkeys.NewUserHandler())
+	w.AddWatch(kmssecrets.DefaultMetadataURL, kmssecrets.NewKmsHandler())
 }
 
 var ErrStopTimeout = errors.New("timeout stopping service")

@@ -29,14 +29,10 @@ type User struct {
 type Manager struct {
 	ctx      context.Context
 	fs       afero.Fs
-	executor ExecutorService
+	executor executor.ExecutorService
 }
 
 var ErrRestrictedUser = errors.New(`modifications to restricted users not allowed (BUILTIN\Administrator on windows or system users on linux)`)
-
-type ExecutorService interface {
-	Run(command *command.Command) error
-}
 
 func New(ctx context.Context) *Manager {
 	return newManager(ctx)

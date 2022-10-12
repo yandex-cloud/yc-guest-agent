@@ -1,7 +1,9 @@
 package sshkeys
 
 import (
+	"bytes"
 	"context"
+	"crypto/sha256"
 	"errors"
 	"fmt"
 	"go.uber.org/zap"
@@ -17,7 +19,7 @@ import (
 )
 
 // handlerName contain name of that handler.
-const handlerName = "users_handler"
+const handlerName = "ssh_keys_handler"
 
 // DefaultMetadataURL contain URL which polled for User change requests.
 const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/ssh-keys"
@@ -28,24 +30,30 @@ var ErrEmptyUserName = errors.New("user is empty")
 // serialPort is interface for read or write to serial port.
 var serialPort = serial.NewBlockingWriter()
 
-// UserHandle is struct, that implements needed methods for MetadataChangeHandler interface.
-type UserHandle struct{}
+// UserHandler is struct, that implements needed methods for MetadataChangeHandler interface.
+type UserHandler struct{}
 
-// NewUserHandle return instance of UserHandle.
-func NewUserHandle() *UserHandle {
-	return &UserHandle{}
+// NewUserHandler return instance of UserHandler.
+func NewUserHandler() *UserHandler {
+	return &UserHandler{}
 }
 
 // String returns name of handler.
-func (h *UserHandle) String() string {
+func (h *UserHandler) String() string {
 	return handlerName
 }
 
+var lastProcessedSha []byte
+
 // Handle passes 'User change or creation' request to 'processRequest' function and writes result to serial port.
-func (h *UserHandle) Handle(ctx context.Context, data []byte) {
+func (h *UserHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
 	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		return
+	}
+	dataSha := sha256.Sum256(data)
+	if bytes.Compare(dataSha[:], lastProcessedSha) == 0 {
 		return
 	}
 
@@ -68,9 +76,11 @@ func (h *UserHandle) Handle(ctx context.Context, data []byte) {
 	if err != nil {
 		return
 	}
+	lastProcessedSha = dataSha[:]
 }
 
 // processRequest unmarshalls passed data in request struct and checks  for validity.
+//
 //nolint:nakedret
 func processRequest(ctx context.Context, data []byte) (res response, err error) {
 	defer func() {

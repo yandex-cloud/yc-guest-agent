@@ -21,6 +21,10 @@ type Executor struct {
 	timeout time.Duration
 }
 
+type ExecutorService interface {
+	Run(command *command.Command) error
+}
+
 func (e *Executor) Run(command *command.Command) error {
 	_, _, err := e.run(command)
 	if err != nil {
