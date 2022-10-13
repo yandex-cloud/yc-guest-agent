@@ -19,7 +19,7 @@ import (
 // handlerName contain name of that handler.
 const handlerName = "managed_certificates_handler"
 
-// DefaultMetadataURL contain URL which polled for User change requests.
+// DefaultMetadataURL contain URL which polled for Managed Certificates to file mapping.
 const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/managed-certificates"
 
 // serialPort is interface for read or write to serial port.
@@ -40,7 +40,7 @@ func (h *ManagedCertificatesHandler) String() string {
 
 var lastProcessedSha []byte
 
-// Handle passes mapping of ManagedCertificates secrets on file paths to 'process' function and writes result to serial port.
+// Handle passes mapping of Managed Certificates on file paths to 'process' function and writes result to serial port.
 func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
 	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
@@ -55,7 +55,6 @@ func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 	var resp response
 	resp, err = process(ctx, data)
 	logger.DebugCtx(ctx, err, "processed request")
-	// wont spam to serial port on equal requests
 
 	runtime.GC()
 	debug.FreeOSMemory()

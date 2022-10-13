@@ -19,7 +19,7 @@ func NewClient(ctx context.Context) *YcClient {
 		Credentials: ycsdk.InstanceServiceAccount(),
 	})
 	if err != nil {
-		logger.InfoCtx(ctx, err, "can not create SDK to decrypt secrets")
+		logger.InfoCtx(ctx, err, "can not create SDK to fetch secrets")
 	}
 	return &YcClient{
 		ctx: ctx,

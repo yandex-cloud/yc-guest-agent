@@ -19,7 +19,7 @@ import (
 // handlerName contain name of that handler.
 const handlerName = "kms_secrets_handler"
 
-// DefaultMetadataURL contain URL which polled for User change requests.
+// DefaultMetadataURL contain URL which polled for KMS encoded secrets to file mapping.
 const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/kms-secrets"
 
 // serialPort is interface for read or write to serial port.
@@ -40,7 +40,7 @@ func (h *KmsHandler) String() string {
 
 var lastProcessedSha []byte
 
-// Handle passes 'User change or creation' request to 'processRequest' function and writes result to serial port.
+// Handle passes KMS encoded secrets mapping on files to 'process' function and writes result to serial port.
 func (h *KmsHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
 	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
@@ -55,7 +55,6 @@ func (h *KmsHandler) Handle(ctx context.Context, data []byte) {
 	var resp response
 	resp, err = process(ctx, data)
 	logger.DebugCtx(ctx, err, "processed request")
-	// wont spam to serial port on equal requests
 
 	runtime.GC()
 	debug.FreeOSMemory()

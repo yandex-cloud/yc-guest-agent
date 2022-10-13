@@ -19,7 +19,7 @@ import (
 // handlerName contain name of that handler.
 const handlerName = "lockbox_secrets_handler"
 
-// DefaultMetadataURL contain URL which polled for User change requests.
+// DefaultMetadataURL contain URL which polled for Lockbox secrets to file mapping.
 const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/lockbox-secrets"
 
 // serialPort is interface for read or write to serial port.
@@ -60,7 +60,6 @@ func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 	var resp response
 	resp, err = process(ctx, msg)
 	logger.DebugCtx(ctx, err, "processed request")
-	// wont spam to serial port on equal requests
 
 	runtime.GC()
 	debug.FreeOSMemory()
