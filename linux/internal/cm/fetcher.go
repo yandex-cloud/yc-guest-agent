@@ -7,14 +7,14 @@ import (
 	"marketplace-yaga/linux/internal/persistance"
 )
 
-type certifiateClient interface {
-	Fetch(certificateId string) ([]byte, error)
+type certificateClient interface {
+	Fetch(certificateId string) (*Certificate, error)
 }
 
 type Manager struct {
 	ctx    context.Context
 	fs     afero.Fs
-	client certifiateClient
+	client certificateClient
 }
 
 func New(ctx context.Context) *Manager {
@@ -31,19 +31,25 @@ func newManager(ctx context.Context) *Manager {
 	}
 }
 
-type Certificate struct {
+type CertificateSpec struct {
 	CertificateId string `json:"certificateId"`
 }
 
-type CertificateMetadataMessage = map[string]Certificate
+type CertificateMetadataMessage = map[string]CertificateSpec
 
 func (m *Manager) HandleCertificates(msg CertificateMetadataMessage) ([]string, error) {
 	var files []string
-	for filepath, cert := range msg {
-		certContent, err := m.client.Fetch(cert.CertificateId)
+	for filepath, spec := range msg {
+		cert, err := m.client.Fetch(spec.CertificateId)
 		if err != nil {
 			return nil, err
 		}
+
+		var certContent []byte
+		for _, cc := range cert.CertificateChain {
+			certContent = append(certContent, []byte(cc)...)
+		}
+		certContent = append(certContent, []byte(cert.PrivateKey)...)
 
 		err = persistance.WriteFile(m.ctx, m.fs, filepath, bytes.NewReader(certContent))
 		if err != nil {

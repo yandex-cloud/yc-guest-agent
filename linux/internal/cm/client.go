@@ -8,6 +8,15 @@ import (
 	"marketplace-yaga/pkg/logger"
 )
 
+type Certificate struct {
+	// ID of the certificate.
+	CertificateId string `json:"certificateId,omitempty"`
+	// PEM-encoded certificate chain content of the certificate.
+	CertificateChain []string `json:"certificateChain,omitempty"`
+	// PEM-encoded private key content of the certificate.
+	PrivateKey string `json:"privateKey,omitempty"`
+}
+
 type YcClient struct {
 	ctx context.Context
 	sdk *ycsdk.SDK
@@ -26,7 +35,7 @@ func NewClient(ctx context.Context) *YcClient {
 	}
 }
 
-func (c *YcClient) Fetch(certificateId string) ([]byte, error) {
+func (c *YcClient) Fetch(certificateId string) (*Certificate, error) {
 	cert, err := c.sdk.CertificatesData().CertificateContent().Get(
 		c.ctx,
 		&certificatemanager.GetCertificateContentRequest{
@@ -39,12 +48,10 @@ func (c *YcClient) Fetch(certificateId string) ([]byte, error) {
 	if err != nil {
 		return nil, err
 	}
-	var res []byte
 
-	for _, cc := range cert.CertificateChain {
-		res = append(res, []byte(cc)...)
-	}
-	res = append(res, []byte(cert.PrivateKey)...)
-
-	return res, nil
+	return &Certificate{
+		CertificateId:    cert.CertificateId,
+		CertificateChain: cert.CertificateChain,
+		PrivateKey:       cert.PrivateKey,
+	}, nil
 }
