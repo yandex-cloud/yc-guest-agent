@@ -1,0 +1,11 @@
+#cloud-config
+datasource:
+  Ec2:
+    strict_id: false
+users:
+  - name: "${user}"
+    groups: wheel
+    shell: /bin/bash
+    sudo: ALL=(ALL) NOPASSWD:ALL
+    ssh_authorized_keys:
+      - "${ssh_key}"

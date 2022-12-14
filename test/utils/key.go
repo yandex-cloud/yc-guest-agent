@@ -1,4 +1,4 @@
-package linux
+package utils
 
 import (
 	"crypto/ed25519"

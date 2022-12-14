@@ -1,0 +1,150 @@
+# This is an example .goreleaser.yml file with some sensible defaults.
+# Make sure to check the documentation at https://goreleaser.com
+before:
+  hooks:
+    # You may remove this if you don't use go modules.
+    - go mod tidy
+builds:
+  -
+    # ID of the build.
+    id: "yandex-guest-agent-linux"
+
+    # Path to main.go file or main package.
+    main: ./linux/yandex-guest-agent/yandex-guest-agent.go
+
+    # Binary name.
+    # Can be a path (e.g. `bin/app`) to wrap the binary in a directory.
+    # Default is the name of the project directory.
+    binary: yandex-guest-agent
+
+    env:
+      - CGO_ENABLED=0
+
+    # Custom ldflags templates.
+    # Default is `-s -w -X main.version={{.Version}} -X main.commit={{.Commit}} -X main.date={{.Date}} -X main.builtBy=goreleaser`.
+    ldflags:
+      - -s -w -X main.build={{.Version}}
+
+    # GOOS list to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are darwin, linux, and windows.
+    goos:
+      - linux
+
+    # GOARCH to build for.
+    # For more info refer to: https://golang.org/doc/install/source#environment
+    # Defaults are 386, amd64 and arm64.
+    goarch:
+      - amd64
+
+archives:
+  - replacements:
+      darwin: Darwin
+      linux: Linux
+      windows: Windows
+      386: i386
+      amd64: x86_64
+# .goreleaser.yaml
+nfpms:
+  # note that this is an array of nfpm configs
+  -
+    # ID of the nfpm config, must be unique.
+    # Defaults to "default".
+    id: yandex-guest-agent
+
+    # Name of the package.
+    # Defaults to `ProjectName`.
+    package_name: yandex-guest-agent
+
+    # You can change the file name of the package.
+    #
+    # Default:`{{ .PackageName }}_{{ .Version }}_{{ .Os }}_{{ .Arch }}{{ with .Arm }}v{{ . }}{{ end }}{{ with .Mips }}_{{ . }}{{ end }}{{ if not (eq .Amd64 "v1") }}{{ .Amd64 }}{{ end }}`
+    file_name_template: "{{ .ConventionalFileName }}"
+
+    # Build IDs for the builds you want to create NFPM packages for.
+    # Defaults empty, which means no filtering.
+    builds:
+      - yandex-guest-agent-linux
+
+    # Your app's vendor.
+    # Default is empty.
+    vendor: Yandex LLC
+
+    # Template to your app's homepage.
+    homepage: https://github.com/yandex-cloud/yc-guest-agent
+
+    # Your app's maintainer (probably you).
+    maintainer: Nikolay Matrosov <nikthespirit@yandex-team.ru>
+
+    # Template to your app's description.
+    description: |-
+      Yandex Cloud Guest Agent install package.
+
+    license: MIT
+
+    # Formats to be generated.
+    formats:
+      - deb
+
+    # Template to the path that the binaries should be installed.
+    # Defaults to `/usr/bin`.
+    bindir: /opt/yandex-guest-agent
+
+    # Version Metadata (previously deb.metadata).
+    # Default is extracted from `version` if it is semver compatible.
+    # Setting metadata might interfere with version comparisons depending on the
+    # packager.
+    version_metadata: git
+
+    # Section.
+    section: default
+
+    # Priority.
+    priority: extra
+
+    contents:
+      - src: linux/scripts/yandex-guest-agent.service
+        dst: /usr/lib/systemd/system/yandex-guest-agent.service
+      - src: /opt/yandex-guest-agent/yandex-guest-agent
+        dst: /usr/local/bin/yandex-guest-agent
+        type: "symlink"
+
+    # Scripts to execute during the installation of the package. (overridable)
+    #
+    # Keys are the possible targets during the installation process
+    # Values are the paths to the scripts which will be executed.
+    scripts:
+      postinstall: "linux/scripts/postinstall.sh"
+      postremove: "linux/scripts/postremove.sh"
+
+    # Custom configuration applied only to the Deb packager.
+    deb:
+      # The package is signed if a key_file is set
+      signature:
+        # Template to the PGP secret key file path (can also be ASCII-armored).
+        # The passphrase is taken from the environment variable
+        # `$NFPM_ID_DEB_PASSPHRASE` with a fallback to `$NFPM_ID_PASSPHRASE`,
+        # where ID is the id of the current nfpm config.
+        # The id will be transformed to uppercase.
+        # E.g. If your nfpm id is 'default' then the deb-specific passphrase
+        # should be set as `$NFPM_DEFAULT_DEB_PASSPHRASE`
+#        key_file: '{{ .Env.GPG_KEY_PATH }}'
+
+        # The type describes the signers role, possible values are "origin",
+        # "maint" and "archive". If unset, the type defaults to "origin".
+        type: origin
+
+checksum:
+  name_template: 'checksums.txt'
+snapshot:
+  name_template: "{{ incpatch .Version }}-next"
+changelog:
+  sort: asc
+  filters:
+    exclude:
+      - '^docs:'
+      - '^test:'
+
+# modelines, feel free to remove those if you don't want/use them:
+# yaml-language-server: $schema=https://goreleaser.com/static/schema.json
+# vim: set ts=2 sw=2 tw=0 fo=cnqoj

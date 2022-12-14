@@ -1,0 +1,14 @@
+[Unit]
+Description=Yandex Guest Agent
+After=syslog.target
+After=network.target
+
+[Service]
+RestartSec=2s
+Type=simple
+WorkingDirectory=/opt/yandex-guest-agent
+ExecStart=/usr/local/bin/yandex-guest-agent start
+Restart=always
+
+[Install]
+WantedBy=multi-user.target

@@ -14,10 +14,10 @@ import (
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
-func TestKms(t *testing.T) {
+func TestLockbox(t *testing.T) {
 	t.Parallel()
 
-	exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "./", "kms")
+	exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "./", "lockbox")
 
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
 	defer test_structure.RunTestStage(t, "teardown", func() {
@@ -43,12 +43,12 @@ func TestKms(t *testing.T) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, exampleFolder)
 		savedKeyPair := test_structure.LoadEc2KeyPair(t, exampleFolder)
 
-		testValidateKMSViaSSH(t, terraformOptions, savedKeyPair.KeyPair)
+		testValidateLockboxViaSSH(t, terraformOptions, savedKeyPair.KeyPair)
 	})
 
 }
 
-func testValidateKMSViaSSH(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
+func testValidateLockboxViaSSH(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
 	// Run `terraform output` to get the value of an output variable
 	publicInstanceIP := terraform.Output(t, terraformOptions, "public_instance_ip")
 
@@ -86,7 +86,7 @@ func testValidateKMSViaSSH(t *testing.T, terraformOptions *terraform.Options, ke
 	})
 	// Verify contents of the created file
 	retry.DoWithRetry(t, description, 5, timeBetweenRetries, func() (string, error) {
-		actualText, err := ssh.FetchContentsOfFileE(t, publicHost, true, "/opt/yaga/secret")
+		actualText, err := ssh.FetchContentsOfFileE(t, publicHost, true, "/opt/yaga/lockbox")
 
 		if err != nil {
 			return "", err

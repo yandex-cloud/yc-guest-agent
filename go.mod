@@ -18,6 +18,7 @@ require (
 	github.com/yandex-cloud/go-genproto v0.0.0-20221010111330-0b826c42c781
 	github.com/yandex-cloud/go-sdk v0.0.0-20221010112024-bf39039cc451
 	go.uber.org/zap v1.19.1
+	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5
 	golang.org/x/sys v0.0.0-20220517195934-5e4e11fc645e
 )
 
@@ -77,7 +78,6 @@ require (
 	go.opencensus.io v0.23.0 // indirect
 	go.uber.org/atomic v1.7.0 // indirect
 	go.uber.org/multierr v1.6.0 // indirect
-	golang.org/x/crypto v0.0.0-20210817164053-32db794688a5 // indirect
 	golang.org/x/net v0.0.0-20211029224645-99673261e6eb // indirect
 	golang.org/x/oauth2 v0.0.0-20211104180415-d3ed0bb246c8 // indirect
 	golang.org/x/term v0.0.0-20201126162022-7de9c90e9dd1 // indirect

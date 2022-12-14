@@ -3,8 +3,8 @@ package linux
 import (
 	"fmt"
 	"marketplace-yaga/test/goreleaser"
+	"marketplace-yaga/test/utils"
 	"os"
-	"strings"
 	"testing"
 	"time"
 
@@ -14,10 +14,10 @@ import (
 	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
 )
 
-func TestKms(t *testing.T) {
+func TestCert(t *testing.T) {
 	t.Parallel()
 
-	exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "./", "kms")
+	exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "./", "cert")
 
 	// At the end of the test, run `terraform destroy` to clean up any resources that were created
 	defer test_structure.RunTestStage(t, "teardown", func() {
@@ -28,6 +28,9 @@ func TestKms(t *testing.T) {
 	// Deploy the example
 	test_structure.RunTestStage(t, "setup", func() {
 		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder)
+		certPair := utils.GenerateCertificates()
+		terraformOptions.Vars["certificate"] = certPair.Certificate
+		terraformOptions.Vars["private_key"] = certPair.PrivateKey
 
 		// Save the options and key pair so later test stages can use them
 		test_structure.SaveTerraformOptions(t, exampleFolder, terraformOptions)
@@ -43,12 +46,12 @@ func TestKms(t *testing.T) {
 		terraformOptions := test_structure.LoadTerraformOptions(t, exampleFolder)
 		savedKeyPair := test_structure.LoadEc2KeyPair(t, exampleFolder)
 
-		testValidateKMSViaSSH(t, terraformOptions, savedKeyPair.KeyPair)
+		testValidateCertViaSSH(t, terraformOptions, savedKeyPair.KeyPair)
 	})
 
 }
 
-func testValidateKMSViaSSH(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
+func testValidateCertViaSSH(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
 	// Run `terraform output` to get the value of an output variable
 	publicInstanceIP := terraform.Output(t, terraformOptions, "public_instance_ip")
 
@@ -67,7 +70,7 @@ func testValidateKMSViaSSH(t *testing.T, terraformOptions *terraform.Options, ke
 	packageArtifactInfo := goreleaser.FindLinuxPackage(goreleaser.ParseArtefacts("../../dist/artifacts.json"))
 
 	remoteTempFilePath := "/tmp/" + packageArtifactInfo.Name
-	expectedText := "much secret! very encrypted!"
+	expectedText := terraformOptions.Vars["certificate"].(string) + terraformOptions.Vars["private_key"].(string)
 	installCommand := fmt.Sprintf("sudo dpkg --install %s", remoteTempFilePath)
 
 	localFile, err := os.ReadFile("../../" + packageArtifactInfo.Path)
@@ -86,13 +89,13 @@ func testValidateKMSViaSSH(t *testing.T, terraformOptions *terraform.Options, ke
 	})
 	// Verify contents of the created file
 	retry.DoWithRetry(t, description, 5, timeBetweenRetries, func() (string, error) {
-		actualText, err := ssh.FetchContentsOfFileE(t, publicHost, true, "/opt/yaga/secret")
+		actualText, err := ssh.FetchContentsOfFileE(t, publicHost, true, "/etc/nginx/ssl/yaga.pem")
 
 		if err != nil {
 			return "", err
 		}
 
-		if strings.TrimSpace(actualText) != expectedText {
+		if actualText != expectedText {
 			return "", fmt.Errorf("Expected YAGA file to return '%s' but got '%s'", expectedText, actualText)
 		}
 
