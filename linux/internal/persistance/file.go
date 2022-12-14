@@ -2,6 +2,7 @@ package persistance
 
 import (
 	"context"
+	"fmt"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"io"
@@ -21,20 +22,14 @@ func WriteFile(ctx context.Context, fs afero.Fs, filepath string, content io.Rea
 		return err
 	}
 
-	file, err := fs.OpenFile(filepath, os.O_RDWR|os.O_CREATE, 0600)
+	file, err := fs.OpenFile(filepath, os.O_RDWR|os.O_CREATE|os.O_TRUNC, 0600)
 	logger.DebugCtx(ctx, err, "opened the file in write mode", logOpts...)
 	if err != nil {
 		return err
 	}
 
-	var data []byte
-	_, err = content.Read(data)
-	if err != nil {
-		return err
-	}
-
-	_, err = file.Write(data)
-	logger.DebugCtx(ctx, err, "written the content", logOpts...)
+	n, err := io.Copy(file, content)
+	logger.DebugCtx(ctx, err, fmt.Sprintf("%d bytes written to file", n), logOpts...)
 	if err != nil {
 		return err
 	}
