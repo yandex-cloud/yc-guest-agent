@@ -137,6 +137,9 @@ func parseSshKeys(data []byte) ([]usermanager.User, error) {
 	userKeys := string(data)
 	for _, line := range strings.Split(userKeys, "\n") {
 		line := strings.Trim(line, " ")
+		if len(line) == 0 {
+			continue
+		}
 		parts := strings.Split(line, ":")
 		if len(parts) != 2 {
 			return nil, ErrWrongSshKeyFormat

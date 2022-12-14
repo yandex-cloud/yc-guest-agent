@@ -23,8 +23,7 @@ func configureTerraformOptions(t *testing.T, exampleFolder string) (*terraform.O
 	instanceSaName := fmt.Sprintf("yaga-sa-%s", uniqueID)
 
 	// Create the Key Pair that we can use for SSH access
-	randR := rand.Reader
-	publicKey, privateKey, _ := ed25519.GenerateKey(randR)
+	publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
 	keyPair, _ := utils.PairFromED25519(publicKey, privateKey)
 
 	user := "ubuntu"
