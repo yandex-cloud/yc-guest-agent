@@ -128,7 +128,7 @@ nfpms:
         # The id will be transformed to uppercase.
         # E.g. If your nfpm id is 'default' then the deb-specific passphrase
         # should be set as `$NFPM_DEFAULT_DEB_PASSPHRASE`
-#        key_file: '{{ .Env.GPG_KEY_PATH }}'
+        key_file: '{{ .Env.GPG_KEY_PATH }}'
 
         # The type describes the signers role, possible values are "origin",
         # "maint" and "archive". If unset, the type defaults to "origin".
@@ -144,6 +144,25 @@ changelog:
     exclude:
       - '^docs:'
       - '^test:'
+signs:
+  - artifacts: all
+    args: ["--batch", "-u", "{{ .Env.GPG_FINGERPRINT }}", "--output", "${signature}", "--detach-sign", "${artifact}"]
+
+blobs:
+  # You can have multiple blob configs
+  -
+    provider: s3
+    endpoint: https://storage.yandexcloud.net
+    region: ru-central1
+    bucket: yandexcloud-guestagent
+
+    # IDs of the artifacts you want to upload.
+    ids:
+      - yandex-guest-agent-linux
+
+    # Template for the path/name inside the bucket.
+    # Default is `{{ .ProjectName }}/{{ .Tag }}`
+    folder: "yandex-guest-agent-linux/{{.Version}}"
 
 # modelines, feel free to remove those if you don't want/use them:
 # yaml-language-server: $schema=https://goreleaser.com/static/schema.json
