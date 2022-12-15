@@ -142,6 +142,7 @@ blobs:
     # IDs of the artifacts you want to upload.
     ids:
       - yandex-guest-agent-linux
+      - yandex-guest-agent
 
     # Template for the path/name inside the bucket.
     # Default is `{{ .ProjectName }}/{{ .Tag }}`
