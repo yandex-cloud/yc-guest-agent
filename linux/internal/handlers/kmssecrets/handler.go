@@ -89,7 +89,7 @@ func process(ctx context.Context, data []byte) (res response, err error) {
 
 	mngr := kms.New(ctx)
 	msg, err := parse(data)
-	logger.DebugCtx(ctx, err, "parsing users from metadata")
+	logger.DebugCtx(ctx, err, "parsing kms encrypted secrets from metadata")
 	if err != nil {
 		return
 	}

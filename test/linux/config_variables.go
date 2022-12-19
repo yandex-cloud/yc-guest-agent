@@ -12,14 +12,14 @@ import (
 	"testing"
 )
 
-func configureTerraformOptions(t *testing.T, exampleFolder string) (*terraform.Options, *aws.Ec2Keypair) {
+func configureTerraformOptions(t *testing.T, exampleFolder string, nameFragment string) (*terraform.Options, *aws.Ec2Keypair) {
 	// A unique ID we can use to namespace resources, so we don't clash with anything already in the folder or
 	// tests running in parallel
 	uniqueID := utils.UniqueId()
 
 	// Give this Instance and other resources in the Terraform code a name with a unique ID, so it doesn't clash
 	// with anything else in the folder.
-	instanceName := fmt.Sprintf("yaga-kms-%s", uniqueID)
+	instanceName := fmt.Sprintf("yaga-%s-%s", nameFragment, uniqueID)
 	instanceSaName := fmt.Sprintf("yaga-sa-%s", uniqueID)
 
 	// Create the Key Pair that we can use for SSH access

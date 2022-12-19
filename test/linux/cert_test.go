@@ -27,7 +27,7 @@ func TestCert(t *testing.T) {
 
 	// Deploy the example
 	test_structure.RunTestStage(t, "setup", func() {
-		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder)
+		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder, "cert")
 		certPair := utils.GenerateCertificates()
 		terraformOptions.Vars["certificate"] = certPair.Certificate
 		terraformOptions.Vars["private_key"] = certPair.PrivateKey

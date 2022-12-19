@@ -125,7 +125,6 @@ func (s *Server) Run() error {
 		return err
 	}
 
-	// https://docs.microsoft.com/en-us/previous-versions/ms811896(v=msdn.10)#ucmgch09_topic3
 	// gracefully react on sigTerm/break
 	c := make(chan os.Signal, 1)
 	subscribeOsSignals(c)

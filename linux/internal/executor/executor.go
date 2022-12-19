@@ -56,7 +56,7 @@ func (e *Executor) run(command *command.Command) (string, string, error) {
 	var stdout, stderr strings.Builder
 	err := runCommand(e.ctx, command, &stdout, &stderr, e.timeout)
 
-	// if by any chance sensitive field could be cought,
+	// if by any chance sensitive field could be caught,
 	// in stdout/stderr, we must clear it out
 	sensitiveArgumentsReplacer := command.SensitiveReplacer()
 	clearedStdout := sensitiveArgumentsReplacer.Replace(stdout.String())

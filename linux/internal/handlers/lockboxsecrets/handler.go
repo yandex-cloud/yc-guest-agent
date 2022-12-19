@@ -102,7 +102,7 @@ func process(ctx context.Context, msg lockbox.SecretMetadataMessage) (res respon
 	}
 
 	mngr := lockbox.New(ctx)
-	logger.DebugCtx(ctx, err, "parsing users from metadata")
+	logger.DebugCtx(ctx, err, "parsing links to lockbox secrets from metadata")
 	if err != nil {
 		return
 	}

@@ -27,7 +27,7 @@ func TestKms(t *testing.T) {
 
 	// Deploy the example
 	test_structure.RunTestStage(t, "setup", func() {
-		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder)
+		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder, "kms")
 
 		// Save the options and key pair so later test stages can use them
 		test_structure.SaveTerraformOptions(t, exampleFolder, terraformOptions)
