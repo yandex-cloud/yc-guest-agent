@@ -3,8 +3,10 @@ package usermanager
 import (
 	"bufio"
 	"context"
+	"crypto/rand"
 	"errors"
 	"fmt"
+	"github.com/GehirnInc/crypt/sha512_crypt"
 	"github.com/spf13/afero"
 	"go.uber.org/zap"
 	"io/fs"
@@ -12,6 +14,7 @@ import (
 	"marketplace-yaga/linux/internal/executor/argument"
 	"marketplace-yaga/linux/internal/executor/command"
 	"marketplace-yaga/pkg/logger"
+	"math/big"
 	"os"
 	"os/user"
 	"path"
@@ -211,13 +214,13 @@ func (m *Manager) appendKey(homedir string, sshKey string, err error, authorized
 	}
 	return err
 }
-func (m *Manager) ValidateExist(username string) error {
+func (m *Manager) Exist(username string) (bool, error) {
 	_, err := user.Lookup(username)
 	if err != nil {
-		return fmt.Errorf("failed to lookup user: %w", err)
+		return false, fmt.Errorf("failed to lookup user: %w", err)
 	}
 
-	return nil
+	return true, nil
 }
 
 func (m *Manager) chown(file string, u *user.User) error {
@@ -264,4 +267,89 @@ func validateUsernamePattern(username string) error {
 	}
 
 	return nil
+}
+
+func (m *Manager) SetPassword(username, password string) error {
+	logger.DebugCtx(m.ctx, nil, "set password",
+		zap.String("username", username))
+
+	hashedPassword, err := getSHA512Crypt(password)
+	if err != nil {
+		return fmt.Errorf("failed to get sha 512 crypt hash: %w", err)
+	}
+
+	logger.InfoCtx(m.ctx, nil, "set password",
+		zap.String("hash", hashedPassword))
+
+	cmd, err := command.New(
+		argument.New("usermod"),
+		argument.New("--password"),
+		argument.New(hashedPassword, argument.Sensitive(), argument.NoEscape()),
+		argument.New(username))
+
+	if err != nil {
+		return fmt.Errorf("failed construct command: %w", err)
+	}
+
+	return m.executor.Run(cmd)
+}
+
+func (m *Manager) AddToAdministrators(username string) error {
+	logger.DebugCtx(m.ctx, nil, `add to local group sudo`,
+		zap.String("username", username))
+
+	const group = "sudo"
+
+	cmd, err := command.New(
+		argument.New("usermod"),
+		argument.New("--groups"),
+		argument.New(group),
+		argument.New(username))
+
+	if err != nil {
+		return fmt.Errorf("failed construct command: %w", err)
+	}
+
+	return m.executor.Run(cmd)
+}
+
+func getSHA512Crypt(password string) (string, error) {
+	// 16 is limitation
+	const maxSHA512SaltLength = 16
+	s := newCryptSalt(maxSHA512SaltLength)
+
+	// sha512crypt has well-known prefix
+	const prefixSHA512crypt = `$6$`
+	salt := fmt.Sprintf("%s%s", prefixSHA512crypt, s)
+
+	hashedPassword, err := sha512_crypt.New().Generate([]byte(password), []byte(salt))
+	if err != nil {
+		return "", err
+	}
+
+	return hashedPassword, nil
+}
+
+func newCryptSalt(length uint) string {
+	// accepted chars are [./0-9A-Za-z]
+	const alphabet = `./0123456789ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz`
+
+	salt := ""
+	for i := uint(0); i < length; i++ {
+		salt += getRandomChar(alphabet)
+	}
+
+	return salt
+}
+
+func getRandomChar(s string) string {
+	rs := []rune(s)
+	l := len(rs)
+
+	n, err := rand.Int(rand.Reader, big.NewInt(int64(l)))
+	if err != nil {
+		panic(err)
+	}
+
+	return string(rs[n.Int64()])
 }

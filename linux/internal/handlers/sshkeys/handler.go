@@ -22,7 +22,7 @@ import (
 const handlerName = "ssh_keys_handler"
 
 // DefaultMetadataURL contain URL which polled for User change requests.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/ssh-keys"
+const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/linux-users"
 
 var ErrWrongSshKeyFormat = errors.New("expected key format user:key")
 var ErrEmptyUserName = errors.New("user is empty")
@@ -111,7 +111,7 @@ func processRequest(ctx context.Context, data []byte) (res response, err error) 
 		if err != nil {
 			return
 		}
-		err = mngr.ValidateExist(u.Name)
+		_, err = mngr.Exist(u.Name)
 		if err != nil {
 			err = mngr.CreateUser(u.Name)
 			if err != nil {

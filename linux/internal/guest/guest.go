@@ -7,6 +7,7 @@ import (
 	"marketplace-yaga/linux/internal/handlers/lockboxsecrets"
 	"marketplace-yaga/linux/internal/handlers/managedcertificates"
 	"marketplace-yaga/linux/internal/handlers/sshkeys"
+	"marketplace-yaga/linux/internal/handlers/users"
 	"marketplace-yaga/pkg/heartbeat"
 	"marketplace-yaga/pkg/logger"
 	"marketplace-yaga/pkg/meta"
@@ -90,6 +91,7 @@ func startUserChangeMetadataWatcher(ctx context.Context) {
 	w.AddWatch(kmssecrets.DefaultMetadataURL, kmssecrets.NewKmsHandler())
 	w.AddWatch(lockboxsecrets.DefaultMetadataURL, lockboxsecrets.NewLockboxHandler())
 	w.AddWatch(managedcertificates.DefaultMetadataURL, managedcertificates.CertificatesHandler())
+	w.AddWatch(users.DefaultMetadataURL, users.NewUserHandle())
 }
 
 var ErrStopTimeout = errors.New("timeout stopping service")

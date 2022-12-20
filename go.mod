@@ -3,6 +3,7 @@ module marketplace-yaga
 go 1.19
 
 require (
+	github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962
 	github.com/alessio/shellescape v1.4.1
 	github.com/blang/semver/v4 v4.0.0
 	github.com/cenkalti/backoff/v4 v4.1.2

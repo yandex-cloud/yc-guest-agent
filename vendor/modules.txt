@@ -10,6 +10,12 @@ cloud.google.com/go/internal/version
 # cloud.google.com/go/storage v1.10.0
 ## explicit; go 1.11
 cloud.google.com/go/storage
+# github.com/GehirnInc/crypt v0.0.0-20200316065508-bb7000b8a962
+## explicit
+github.com/GehirnInc/crypt
+github.com/GehirnInc/crypt/common
+github.com/GehirnInc/crypt/internal
+github.com/GehirnInc/crypt/sha512_crypt
 # github.com/agext/levenshtein v1.2.3
 ## explicit
 github.com/agext/levenshtein
