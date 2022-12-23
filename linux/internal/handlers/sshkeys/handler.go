@@ -22,7 +22,7 @@ import (
 const handlerName = "ssh_keys_handler"
 
 // DefaultMetadataURL contain URL which polled for User change requests.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/linux-users"
+const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/ssh-keys"
 
 var ErrWrongSshKeyFormat = errors.New("expected key format user:key")
 var ErrEmptyUserName = errors.New("user is empty")
