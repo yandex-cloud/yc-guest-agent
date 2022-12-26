@@ -1,0 +1,155 @@
+package linux
+
+import (
+	"context"
+	"crypto/ed25519"
+	"crypto/rand"
+	"encoding/json"
+	"fmt"
+	"github.com/yandex-cloud/go-genproto/yandex/cloud/compute/v1"
+	ycsdk "github.com/yandex-cloud/go-sdk"
+	"github.com/yandex-cloud/go-sdk/iamkey"
+	"log"
+	"marketplace-yaga/test/goreleaser"
+	"marketplace-yaga/test/utils"
+	"os"
+	"testing"
+	"time"
+
+	"github.com/gruntwork-io/terratest/modules/retry"
+	"github.com/gruntwork-io/terratest/modules/ssh"
+	"github.com/gruntwork-io/terratest/modules/terraform"
+	test_structure "github.com/gruntwork-io/terratest/modules/test-structure"
+)
+
+func TestSSHKeys(t *testing.T) {
+	t.Parallel()
+
+	exampleFolder := test_structure.CopyTerraformFolderToTemp(t, "./", "sshkeys")
+
+	// At the end of the test, run `terraform destroy` to clean up any resources that were created
+	defer test_structure.RunTestStage(t, "teardown", func() {
+		terraformOptions := test_structure.LoadTerraformOptions(t, exampleFolder)
+		terraform.Destroy(t, terraformOptions)
+	})
+
+	// Deploy the example
+	test_structure.RunTestStage(t, "setup", func() {
+		terraformOptions, keyPair := configureTerraformOptions(t, exampleFolder, "sshkeys")
+
+		// Save the options and key pair so later test stages can use them
+		test_structure.SaveTerraformOptions(t, exampleFolder, terraformOptions)
+		test_structure.SaveEc2KeyPair(t, exampleFolder, keyPair)
+
+		// This will run `terraform init` and `terraform apply` and fail the test if there are any errors
+		terraform.InitAndApply(t, terraformOptions)
+	})
+
+	// Make sure we can SSH to the public Instance directly from the public Internet and the private Instance by using
+	// the public Instance as a jump host
+	test_structure.RunTestStage(t, "precheck", func() {
+		terraformOptions := test_structure.LoadTerraformOptions(t, exampleFolder)
+		savedKeyPair := test_structure.LoadEc2KeyPair(t, exampleFolder)
+
+		testPrecheckSSHKeys(t, terraformOptions, savedKeyPair.KeyPair)
+	})
+
+	// Make sure we can update SSH keys and still connect to VM
+	test_structure.RunTestStage(t, "validate", func() {
+		terraformOptions := test_structure.LoadTerraformOptions(t, exampleFolder)
+
+		testValidateSSHKeys(t, terraformOptions)
+	})
+
+}
+
+func testPrecheckSSHKeys(t *testing.T, terraformOptions *terraform.Options, keyPair *ssh.KeyPair) {
+	// Run `terraform output` to get the value of an output variable
+	publicInstanceIP := terraform.Output(t, terraformOptions, "public_instance_ip")
+
+	// We're going to try to SSH to the instance IP, using the Key Pair we created earlier, and the user
+	publicHost := ssh.Host{
+		Hostname:    publicInstanceIP,
+		SshKeyPair:  keyPair,
+		SshUserName: terraformOptions.Vars["user"].(string),
+	}
+
+	// It can take a minute or so for the Instance to boot up, so retry a few times
+	maxRetries := 30
+	timeBetweenRetries := 5 * time.Second
+	description := fmt.Sprintf("SSH to YAGA host %s", publicInstanceIP)
+
+	packageArtifactInfo := goreleaser.FindLinuxPackage(goreleaser.ParseArtefacts("../../dist/artifacts.json"))
+
+	remoteTempFilePath := "/tmp/" + packageArtifactInfo.Name
+	installCommand := fmt.Sprintf("sudo dpkg --install %s", remoteTempFilePath)
+
+	localFile, err := os.ReadFile("../../" + packageArtifactInfo.Path)
+	if err != nil {
+		t.Fatalf("Error: reading local file: %s", err.Error())
+	}
+	// Wait until SSH is available
+	ssh.CheckSshConnectionWithRetry(t, publicHost, maxRetries, timeBetweenRetries)
+
+	// Run commands
+	retry.DoWithRetry(t, description, maxRetries, timeBetweenRetries, func() (string, error) {
+		ssh.ScpFileTo(t, publicHost, 0744, remoteTempFilePath, string(localFile))
+
+		ssh.CheckSshCommand(t, publicHost, installCommand)
+		return "", nil
+	})
+}
+
+func testValidateSSHKeys(t *testing.T, terraformOptions *terraform.Options) {
+	// Run `terraform output` to get the value of an output variable
+	publicInstanceIP := terraform.Output(t, terraformOptions, "public_instance_ip")
+	publicInstanceId := terraform.Output(t, terraformOptions, "public_instance_id")
+
+	publicKey, privateKey, _ := ed25519.GenerateKey(rand.Reader)
+	newKeyPair, _ := utils.PairFromED25519(publicKey, privateKey)
+	// We're going to try to SSH to the instance IP, using new Key Pair
+	publicHost := ssh.Host{
+		Hostname:    publicInstanceIP,
+		SshKeyPair:  newKeyPair,
+		SshUserName: terraformOptions.Vars["user"].(string),
+	}
+
+	ctx, cancel := context.WithTimeout(context.Background(), 30*time.Second)
+	defer cancel()
+
+	var saKey iamkey.Key
+
+	err := json.Unmarshal([]byte(terraformOptions.Vars["sa_key"].(string)), &saKey)
+	if err != nil {
+		return
+	}
+
+	creds, _ := ycsdk.ServiceAccountKey(&saKey)
+	sdk, err := ycsdk.Build(ctx, ycsdk.Config{
+		Credentials: creds,
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	op, err := sdk.WrapOperation(sdk.Compute().Instance().UpdateMetadata(ctx, &compute.UpdateInstanceMetadataRequest{
+		InstanceId: publicInstanceId,
+		Upsert: map[string]string{
+			"ssh-keys": fmt.Sprintf("%s:%s", publicHost.SshUserName, publicHost.SshKeyPair.PublicKey),
+		},
+	}))
+	if err != nil {
+		return
+	}
+	err = op.Wait(ctx)
+	if err != nil {
+		return
+	}
+	// It can take a minute or so for the Instance to boot up, so retry a few times
+	maxRetries := 30
+	timeBetweenRetries := 5 * time.Second
+
+	// Wait until SSH is available
+	ssh.CheckSshConnectionWithRetry(t, publicHost, maxRetries, timeBetweenRetries)
+
+}
