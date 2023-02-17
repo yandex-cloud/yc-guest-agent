@@ -12,8 +12,6 @@ import (
 	"github.com/spf13/cobra"
 )
 
-const portName = "COM4"
-
 func initAgent() (*guest.Server, error) {
 	l, err := logger.NewLogger(logLevel, disableSerialSink)
 	if err != nil {
@@ -22,7 +20,7 @@ func initAgent() (*guest.Server, error) {
 	ctx := logger.NewContext(context.Background(), l)
 
 	// it will try to lock COM4-port for exclusive use
-	if err = serial.Init(portName); err != nil {
+	if err = serial.Init(); err != nil {
 		return nil, err
 	}
 

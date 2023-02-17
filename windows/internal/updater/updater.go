@@ -89,10 +89,16 @@ func getAgentVersion(path string) (string, error) {
 	return strings.Trim(string(o), "\n"), nil
 }
 
+var (
+	VersionRemoteEndpoint = `https://storage.yandexcloud.net`
+	GuestAgentBucket      = `yandexcloud-guestagent`
+	GuestAgentLatest      = fmt.Sprintf(`/%v/release/stable`, GuestAgentBucket)
+)
+
 const (
 	versionLocalRepository = `C:\Program Files\Yandex.Cloud\Guest Agent Updater\Local Repository`
-	versionRemoteEndpoint  = `https://storage.yandexcloud.net`
 	updaterHTTPAgent       = `Yandex.Cloud.Guest.Agent.Updater`
+	checksumSuffix         = "sha256"
 )
 
 func New(ctx context.Context) (*GuestAgent, error) {
@@ -116,7 +122,7 @@ func New(ctx context.Context) (*GuestAgent, error) {
 		return nil, fmt.Errorf("service manager creation failed: %w", err)
 	}
 
-	h, err := httpx.New(ctx, versionRemoteEndpoint, updaterHTTPAgent)
+	h, err := httpx.New(ctx, VersionRemoteEndpoint, updaterHTTPAgent)
 	if err != nil {
 		return nil, fmt.Errorf("http client creation failed: %w", err)
 	}
@@ -418,8 +424,6 @@ func (u *GuestAgent) getRepoLatest() string {
 	return versions[0]
 }
 
-const guestAgentLatest = `/yandexcloud-guestagent/release/stable`
-
 func (u *GuestAgent) getLatest() (string, error) {
 	err := u.ctx.Err()
 	logger.DebugCtx(u.ctx, err, "check context")
@@ -427,9 +431,9 @@ func (u *GuestAgent) getLatest() (string, error) {
 		return "", err
 	}
 
-	r, err := u.hclient.R().Get(guestAgentLatest)
+	r, err := u.hclient.R().Get(GuestAgentLatest)
 	logger.DebugCtx(u.ctx, err, "get latest version",
-		zap.String("url", guestAgentLatest))
+		zap.String("url", GuestAgentLatest))
 	if err != nil {
 		return "", err
 	}
@@ -448,8 +452,6 @@ func (u *GuestAgent) getLatest() (string, error) {
 	return v, nil
 }
 
-const checksumSuffix = "sha256"
-
 func (u *GuestAgent) downloadVersion(v string) (path string, err error) {
 	err = u.ctx.Err()
 	logger.DebugCtx(u.ctx, err, "check context")
@@ -465,8 +467,8 @@ func (u *GuestAgent) downloadVersion(v string) (path string, err error) {
 	}
 
 	tmpAgent := joinWithDots(tmp, "exe")
-	urlAgent := fmt.Sprintf(`yandexcloud-guestagent/release/%v/%v/%v/%v`,
-		v, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
+	urlAgent := fmt.Sprintf(`%v/release/%v/%v/%v/%v`,
+		GuestAgentBucket, v, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
 	a, err := u.fs.Create(tmpAgent)
 	if err != nil {
 		return
@@ -488,8 +490,8 @@ func (u *GuestAgent) downloadVersion(v string) (path string, err error) {
 	}()
 
 	tmpChecksum := joinWithDots(tmpAgent, checksumSuffix)
-	urlChecksum := fmt.Sprintf(`yandexcloud-guestagent/release/%v/%v/%v/%v`,
-		v, runtime.GOOS, runtime.GOARCH, joinWithDots(guest.AgentExecutable, checksumSuffix))
+	urlChecksum := fmt.Sprintf(`%v/release/%v/%v/%v/%v`,
+		GuestAgentBucket, v, runtime.GOOS, runtime.GOARCH, joinWithDots(guest.AgentExecutable, checksumSuffix))
 	c, err := u.fs.Create(tmpChecksum)
 	if err != nil {
 		return

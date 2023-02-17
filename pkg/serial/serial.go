@@ -14,11 +14,13 @@ var once sync.Once
 
 var port io.WriteCloser
 
+const portName = "COM4"
+
 const portBaud = 115200
 
 const maxRetries = 10
 
-func Init(portName string) (err error) {
+func Init() (err error) {
 	once.Do(func() {
 		var p io.WriteCloser
 		tryOpen := func() (tryErr error) {

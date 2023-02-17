@@ -102,8 +102,16 @@ var versionCmd = &cobra.Command{
 		if err != nil {
 			log.Fatal(fmt.Errorf("failed to parse (%v) guest agent updater version: %w", version, err))
 		}
-
 		cmd.Println(version)
+	},
+}
+
+var configCmd = &cobra.Command{
+	Use:   "config",
+	Short: "print config of guest agent updater",
+	Run: func(cmd *cobra.Command, args []string) {
+		cmd.Printf("Endpoint: %s\n", updater.VersionRemoteEndpoint)
+		cmd.Printf("Bucket Name: %s\n", updater.GuestAgentBucket)
 	},
 }
 
@@ -149,6 +157,7 @@ func main() {
 	rootCmd.AddCommand(startCmd)
 	rootCmd.AddCommand(stopCmd)
 	rootCmd.AddCommand(versionCmd)
+	rootCmd.AddCommand(configCmd)
 
 	if err := rootCmd.Execute(); err != nil {
 		log.Fatal("agent execution failed: %w", err)
