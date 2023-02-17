@@ -57,13 +57,13 @@ func TestContext(t *testing.T) {
 type contextTests struct{ suite.Suite }
 
 func (s *contextTests) TestLContextNoopIfNotStored() {
-	l := FromContext(context.Background())
+	l := L(context.Background())
 	s.Equal(zap.NewNop(), l)
 }
 
 func (s *contextTests) TestLContextNoopFromNil() {
 	//nolint:SA1012
-	l := FromContext(nil)
+	l := L(nil)
 	s.Equal(zap.NewNop(), l)
 }
 
@@ -74,7 +74,7 @@ func (s *contextTests) TestLContextMustSucceed() {
 	s.IsType(zp, l)
 
 	ctx := NewContext(context.Background(), l)
-	s.Equal(FromContext(ctx), l)
+	s.Equal(L(ctx), l)
 }
 
 type serialMock struct{ mock.Mock }

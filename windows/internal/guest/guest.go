@@ -1,6 +1,3 @@
-//go:build windows
-// +build windows
-
 package guest
 
 import (
@@ -47,7 +44,7 @@ func NewServer(ctx context.Context) (*Server, error) {
 		return nil, err
 	}
 
-	l := logger.FromContext(ctx).With(zap.String("server", "windows"))
+	l := logger.L(ctx).With(zap.String("server", "windows"))
 	s.ctx, s.cancel = context.WithCancel(logger.NewContext(ctx, l))
 
 	return &s, nil
