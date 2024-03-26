@@ -50,15 +50,15 @@ func (w *MetadataWatcher) Wait() {
 func (w *MetadataWatcher) watch(ctx context.Context, p pollerGet, h MetadataChangeHandler) {
 	for {
 		err := ctx.Err()
-		logger.DebugCtx(ctx, ctx.Err(), "checked deadline or context cancellation")
 		if err != nil {
+			logger.ErrorCtx(ctx, ctx.Err(), "checked deadline or context cancellation")
 			return
 		}
 
 		var data []byte
 		data, err = p.Get(ctx)
-		logger.DebugCtx(ctx, err, "got new metadata", zap.ByteString("content", data))
 		if err != nil {
+			logger.ErrorCtx(ctx, err, "got new metadata", zap.ByteString("content", data))
 			continue
 		}
 

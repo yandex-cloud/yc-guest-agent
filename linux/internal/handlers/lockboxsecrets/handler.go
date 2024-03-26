@@ -20,7 +20,7 @@ import (
 const handlerName = "lockbox_secrets_handler"
 
 // DefaultMetadataURL contain URL which polled for Lockbox secrets to file mapping.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/lockbox-secrets"
+const DefaultMetadataURL = "http://169.254.169.254/computeMetadata/v1/instance/attributes/lockbox-secrets"
 
 // serialPort is interface for read or write to serial port.
 var serialPort = serial.NewBlockingWriter()
@@ -43,8 +43,8 @@ var lastProcessedSha []byte
 // Handle passes mapping of Lockbox secrets on file paths to 'process' function and writes result to serial port.
 func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 	dataSha := sha256.Sum256(data)
@@ -59,7 +59,9 @@ func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 
 	var resp response
 	resp, err = process(ctx, msg)
-	logger.DebugCtx(ctx, err, "processed request")
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "processed request")
+	}
 
 	runtime.GC()
 	debug.FreeOSMemory()
@@ -69,10 +71,10 @@ func (h *LockboxHandler) Handle(ctx context.Context, data []byte) {
 	e.WithTimestamp(time.Now()).WithType(LockboxSecretsResponseType)
 
 	err = serialPort.WriteJSON(e.Wrap(resp))
-	logger.DebugCtx(ctx, err, "writing to serial port",
-		zap.String("response", fmt.Sprint(resp)),
-		zap.String("envelope", fmt.Sprint(e)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "writing to serial port",
+			zap.String("response", fmt.Sprint(resp)),
+			zap.String("envelope", fmt.Sprint(e)))
 		return
 	}
 	lastProcessedSha = dataSha[:]
@@ -96,14 +98,14 @@ func process(ctx context.Context, msg lockbox.SecretMetadataMessage) (res respon
 	}()
 
 	err = ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	mngr := lockbox.New(ctx)
-	logger.DebugCtx(ctx, err, "parsing links to lockbox secrets from metadata")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "parsing links to lockbox secrets from metadata")
 		return
 	}
 

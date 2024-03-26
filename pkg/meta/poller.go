@@ -45,8 +45,8 @@ func (p *Poller) Get(ctx context.Context) (bs []byte, err error) {
 
 	op := func() error {
 		opErr := ctx.Err()
-		logger.DebugCtx(ctx, opErr, "checked deadline or context cancellation")
 		if opErr != nil {
+			logger.ErrorCtx(ctx, opErr, "checked deadline or context cancellation")
 			return opErr
 		}
 
@@ -76,8 +76,8 @@ func (p *Poller) get(ctx context.Context) ([]byte, error) {
 
 	var resp *http.Response
 	resp, err = p.HTTPClient.Do(req)
-	logger.DebugCtx(ctx, err, "received metadata response")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "received metadata response")
 		return nil, err
 	}
 	defer closeCtx(ctx, resp.Body)
@@ -96,8 +96,8 @@ func createRequest(ctx context.Context, url string, timeout time.Duration, lastE
 	req, err := http.NewRequest(http.MethodGet,
 		url+"?wait_for_change=true&timeout_sec="+fmt.Sprint(timeout.Seconds())+"&last_etag="+lastETag,
 		nil)
-	logger.DebugCtx(ctx, err, "create request")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "create request")
 		return nil, err
 	}
 	req.Header.Add("Metadata-Flavor", "Google")

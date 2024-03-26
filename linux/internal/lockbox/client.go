@@ -34,13 +34,13 @@ func (c *YcClient) Fetch(secretId string, key string) ([]byte, error) {
 			SecretId: secretId,
 		})
 	if err != nil {
-		logger.DebugCtx(c.ctx, err, "failed to fetch the secret",
+		logger.ErrorCtx(c.ctx, err, "failed to fetch the secret",
 			zap.String("secretId", secretId),
 		)
 		return nil, err
 	}
 
-	logger.DebugCtx(c.ctx, err, "fetched the secret",
+	logger.DebugCtx(c.ctx, nil, "fetched the secret",
 		zap.String("secretId", secretId),
 		zap.String("versionId", s.VersionId),
 	)

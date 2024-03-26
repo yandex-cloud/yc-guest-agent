@@ -22,7 +22,7 @@ import (
 const handlerName = "ssh_keys_handler"
 
 // DefaultMetadataURL contain URL which polled for User change requests.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/ssh-keys"
+const DefaultMetadataURL = "http://169.254.169.254/computeMetadata/v1/instance/attributes/ssh-keys"
 
 var ErrWrongSshKeyFormat = errors.New("expected key format user:key")
 var ErrEmptyUserName = errors.New("user is empty")
@@ -48,8 +48,8 @@ var lastProcessedSha []byte
 // Handle passes 'User change or creation' request to 'processRequest' function and writes result to serial port.
 func (h *UserHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 	dataSha := sha256.Sum256(data)
@@ -59,7 +59,9 @@ func (h *UserHandler) Handle(ctx context.Context, data []byte) {
 
 	var resp response
 	resp, err = processRequest(ctx, data)
-	logger.DebugCtx(ctx, err, "processed request")
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "processed request")
+	}
 	// wont spam to serial port on equal requests
 
 	runtime.GC()
@@ -70,10 +72,10 @@ func (h *UserHandler) Handle(ctx context.Context, data []byte) {
 	e.WithTimestamp(time.Now()).WithType(UserUpdateSshKeysResponseType)
 
 	err = serialPort.WriteJSON(e.Wrap(resp))
-	logger.DebugCtx(ctx, err, "writing to serial port",
-		zap.String("response", fmt.Sprint(resp)),
-		zap.String("envelope", fmt.Sprint(e)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "writing to serial port",
+			zap.String("response", fmt.Sprint(resp)),
+			zap.String("envelope", fmt.Sprint(e)))
 		return
 	}
 	lastProcessedSha = dataSha[:]
@@ -90,14 +92,14 @@ func processRequest(ctx context.Context, data []byte) (res response, err error) 
 	}()
 
 	err = ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	parsedUsers, err := parseSshKeys(data)
-	logger.DebugCtx(ctx, err, "parsing users from metadata")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "parsing users from metadata")
 		return
 	}
 	mngr := usermanager.New(ctx)

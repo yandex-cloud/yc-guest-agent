@@ -47,8 +47,8 @@ func (s *Server) start() error {
 	logger.InfoCtx(s.ctx, nil, "start agent")
 
 	err := startHeartbeat(s.ctx)
-	logger.DebugCtx(s.ctx, err, "start heartbeat")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "start heartbeat")
 		return err
 	}
 
@@ -70,14 +70,15 @@ var createHeartbeatSerialTicker = func(ctx context.Context) (starter, error) {
 // startHeartbeat starts to send heartbeat messages to serial port.
 func startHeartbeat(ctx context.Context) error {
 	hb, err := createHeartbeatSerialTicker(ctx)
-	logger.DebugCtx(ctx, err, "create heartbeat ticker")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "create heartbeat ticker")
 		return err
 	}
 
 	err = hb.Start()
-	logger.DebugCtx(ctx, err, "start heartbeat")
-
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "start heartbeat")
+	}
 	return err
 }
 
@@ -108,7 +109,7 @@ func (s *Server) stop() (err error) {
 		logger.DebugCtx(s.ctx, nil, "context closed")
 	case <-time.After(stopTimeout):
 		err = ErrStopTimeout
-		logger.DebugCtx(s.ctx, err, "gave up waiting for context close")
+		logger.ErrorCtx(s.ctx, err, "gave up waiting for context close")
 	}
 
 	return
@@ -122,8 +123,8 @@ func (s *Server) wait() {
 // Run start agent and handles OS or Service Manger's signals/events.
 func (s *Server) Run() error {
 	err := s.start()
-	logger.DebugCtx(s.ctx, err, "start server")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "start server")
 		return err
 	}
 

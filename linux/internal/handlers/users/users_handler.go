@@ -27,7 +27,7 @@ import (
 const handlerName = "users_handler"
 
 // DefaultMetadataURL contain URL which polled for user change requests.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/linux-users"
+const DefaultMetadataURL = "http://169.254.169.254/computeMetadata/v1/instance/attributes/linux-users"
 
 // ErrIdemp is returned when hash of user change request already in registry.
 var ErrIdemp = errors.New("operation already performed")
@@ -84,14 +84,16 @@ func (h *UserHandle) String() string {
 // Handle passes 'user change or creation' request to 'processRequest' function and writes result to serial port.
 func (h *UserHandle) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	var resp response
 	resp, err = processRequest(ctx, data)
-	logger.DebugCtx(ctx, err, "processed request")
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "processed request")
+	}
 	// wont spam to serial port on equal requests
 	if errors.Is(err, ErrIdemp) {
 		return
@@ -103,17 +105,17 @@ func (h *UserHandle) Handle(ctx context.Context, data []byte) {
 	// unwrap to get envelope
 	var e *messages.Envelope
 	e, err = messages.UnmarshalEnvelope(data)
-	logger.DebugCtx(ctx, err, "unwrap envelope from message")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "unwrap envelope from message")
 		return
 	}
 	e.WithTimestamp(time.Now()).WithType(UserChangeResponseType)
 
 	err = serialPort.WriteJSON(e.Wrap(resp))
-	logger.DebugCtx(ctx, err, "writing to serial port",
-		zap.String("response", fmt.Sprint(resp)),
-		zap.String("envelope", fmt.Sprint(e)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "writing to serial port",
+			zap.String("response", fmt.Sprint(resp)),
+			zap.String("envelope", fmt.Sprint(e)))
 		return
 	}
 }
@@ -130,15 +132,15 @@ func processRequest(ctx context.Context, data []byte) (res response, err error) 
 	}()
 
 	err = ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	var req request
 	err = messages.UnmarshalPayload(data, &req)
-	logger.DebugCtx(ctx, err, "unmarshal request from message payload")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "unmarshal request from message payload")
 		return
 	}
 	res.withRequest(req)
@@ -146,38 +148,38 @@ func processRequest(ctx context.Context, data []byte) (res response, err error) 
 	rm := NewRequestManager(afero.NewOsFs())
 	var hash string
 	hash, err = rm.GetSHA256(req)
-	logger.DebugCtx(ctx, err, "hashed request")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "hashed request")
 		return
 	}
 
 	err = rm.ValidateRequestHash(hash)
-	logger.DebugCtx(ctx, err, "checked request hash for idempotency", zap.String("hash", hash))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked request hash for idempotency", zap.String("hash", hash))
 		return
 	}
 
 	err = os.WriteFile(idempotencyFile, []byte(hash), 0600)
-	logger.DebugCtx(ctx, err, "saved request hash to file",
-		zap.String("idempotencyFile", idempotencyFile),
-		zap.String("hash", hash))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "saved request hash to file",
+			zap.String("idempotencyFile", idempotencyFile),
+			zap.String("hash", hash))
 		return
 	}
 
 	err = rm.ValidateRequestTimestamp(req.Expires)
-	logger.DebugCtx(ctx, err, "validated user request timestamp",
-		zap.String("request", fmt.Sprint(req)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "validated user request timestamp",
+			zap.String("request", fmt.Sprint(req)))
 		return
 	}
 
 	um := usermanager.New(ctx)
 	var encPwd string
 	encPwd, err = changeOrCreateUser(ctx, um, req)
-	logger.DebugCtx(ctx, err, "changed or created user",
-		zap.String("request", fmt.Sprint(req)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "changed or created user",
+			zap.String("request", fmt.Sprint(req)))
 		return
 	}
 	res.withSuccess().withEncryptedPassword(encPwd)
@@ -198,59 +200,61 @@ type userManagerProvider interface {
 //
 //nolint:nakedret
 func changeOrCreateUser(ctx context.Context, userManager userManagerProvider, req request) (encPwd string, err error) {
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err = ctx.Err(); err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	var pwd string
 	pwd, err = pwdGen.Generate(passwordLength, passwordNumDigits, passwordNumSymbols, passwordNoUppers)
-	logger.DebugCtx(ctx, err, "generated password")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "generated password")
 		return
 	}
 
 	encPwd, err = encryptPassword(req.Modulus, req.Exponent, pwd)
-	logger.DebugCtx(ctx, err, "encrypted password",
-		zap.String("encryptedPassword", encPwd),
-		zap.String("Modulus", req.Modulus),
-		zap.String("Exponent", req.Exponent))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "encrypted password",
+			zap.String("encryptedPassword", encPwd),
+			zap.String("Modulus", req.Modulus),
+			zap.String("Exponent", req.Exponent))
 		return
 	}
 
 	var exist bool
 	exist, err = userManager.Exist(req.Username)
-	logger.DebugCtx(ctx, err, "checked user existence",
-		zap.String("username", req.Username),
-		zap.String("exist", fmt.Sprint(exist)))
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked user existence",
+			zap.String("username", req.Username),
+			zap.String("exist", fmt.Sprint(exist)))
+	}
 
 	if exist {
 		err = userManager.SetPassword(req.Username, pwd)
-		logger.DebugCtx(ctx, err, "reset password",
-			zap.String("username", req.Username))
 		if err != nil {
+			logger.ErrorCtx(ctx, err, "reset password",
+				zap.String("username", req.Username))
 			return
 		}
 	} else {
 		err = userManager.CreateUser(req.Username)
-		logger.DebugCtx(ctx, err, "created user",
-			zap.String("username", req.Username))
 		if err != nil {
+			logger.ErrorCtx(ctx, err, "created user",
+				zap.String("username", req.Username))
 			return
 		}
 
 		err = userManager.SetPassword(req.Username, pwd)
-		logger.DebugCtx(ctx, err, "reset password",
-			zap.String("username", req.Username))
 		if err != nil {
+			logger.ErrorCtx(ctx, err, "reset password",
+				zap.String("username", req.Username))
 			return
 		}
 
 		err = userManager.AddToAdministrators(req.Username)
-		logger.DebugCtx(ctx, err, "add to administrators",
-			zap.String("username", req.Username))
 		if err != nil {
+			logger.ErrorCtx(ctx, err, "add to administrators",
+				zap.String("username", req.Username))
 			return
 		}
 	}
