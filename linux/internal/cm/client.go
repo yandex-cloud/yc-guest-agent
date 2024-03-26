@@ -42,10 +42,10 @@ func (c *YcClient) Fetch(certificateId string) (*Certificate, error) {
 			CertificateId:    certificateId,
 			PrivateKeyFormat: certificatemanager.PrivateKeyFormat_PKCS8,
 		})
-	logger.DebugCtx(c.ctx, err, "failed to fetch the secret",
-		zap.String("certificateId", certificateId),
-	)
 	if err != nil {
+		logger.ErrorCtx(c.ctx, err, "failed to fetch the secret",
+			zap.String("certificateId", certificateId),
+		)
 		return nil, err
 	}
 

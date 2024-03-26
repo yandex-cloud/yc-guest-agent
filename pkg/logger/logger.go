@@ -101,9 +101,19 @@ func DebugCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
 	l := FromContext(ctx)
 	if err != nil {
 		l = l.WithOptions(errOptions...)
+		log(l.With(zap.Error(err)), msg, zapcore.ErrorLevel, fields...)
+	} else {
+		log(l.With(zap.Error(err)), msg, zapcore.DebugLevel, fields...)
+	}
+}
+
+func ErrorCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {
+	l := FromContext(ctx)
+	if err != nil {
+		l = l.WithOptions(errOptions...)
 	}
 
-	log(l.With(zap.Error(err)), msg, zapcore.DebugLevel, fields...)
+	log(l.With(zap.Error(err)), msg, zapcore.ErrorLevel, fields...)
 }
 
 func InfoCtx(ctx context.Context, err error, msg string, fields ...zap.Field) {

@@ -72,8 +72,8 @@ func newServiceCreator(m manager) serviceCreator {
 
 func (m *Manager) Init() error {
 	mg, err := mgr.Connect()
-	logger.DebugCtx(m.ctx, err, "connect service manager")
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "connect service manager")
 		return err
 	}
 
@@ -86,7 +86,9 @@ func (m *Manager) Init() error {
 
 func (m *Manager) Close() error {
 	err := m.mgr.Disconnect()
-	logger.DebugCtx(m.ctx, err, "close service manager")
+	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "close service manager")
+	}
 	m.mgr = nil
 
 	return err
@@ -94,9 +96,9 @@ func (m *Manager) Close() error {
 
 func (m *Manager) IsExist(name string) (bool, error) {
 	services, err := m.mgr.ListServices()
-	logger.DebugCtx(m.ctx, err, "list services",
-		zap.Strings("services", services))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "list services",
+			zap.Strings("services", services))
 		return false, err
 	}
 
@@ -113,10 +115,10 @@ func (m *Manager) IsExist(name string) (bool, error) {
 
 func (m *Manager) IsStopped(name string) (bool, error) {
 	s, err := m.getStatus(name)
-	logger.DebugCtx(m.ctx, err, "get status",
-		zap.String("name", name),
-		zap.String("status", s.String()))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "get status",
+			zap.String("name", name),
+			zap.String("status", s.String()))
 		return false, err
 	}
 
@@ -125,10 +127,10 @@ func (m *Manager) IsStopped(name string) (bool, error) {
 
 func (m *Manager) IsRunning(name string) (bool, error) {
 	s, err := m.getStatus(name)
-	logger.DebugCtx(m.ctx, err, "get status",
-		zap.String("name", name),
-		zap.String("status", s.String()))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "get status",
+			zap.String("name", name),
+			zap.String("status", s.String()))
 		return false, err
 	}
 
@@ -137,10 +139,10 @@ func (m *Manager) IsRunning(name string) (bool, error) {
 
 func (m *Manager) getStatus(name string) (State, error) {
 	e, err := m.IsExist(name)
-	logger.DebugCtx(m.ctx, err, "check exist",
-		zap.String("name", name),
-		zap.Bool("exist", e))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check exist",
+			zap.String("name", name),
+			zap.Bool("exist", e))
 		return Unknown, err
 	}
 	if !e {
@@ -148,9 +150,9 @@ func (m *Manager) getStatus(name string) (State, error) {
 	}
 
 	s, err := m.openService(name)
-	logger.DebugCtx(m.ctx, err, "open service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "open service",
+			zap.String("name", name))
 		return Unknown, err
 	}
 	defer func() {
@@ -158,10 +160,10 @@ func (m *Manager) getStatus(name string) (State, error) {
 	}()
 
 	r, err := s.Query()
-	logger.DebugCtx(m.ctx, err, "query service",
-		zap.String("name", name),
-		zap.Stringer("state", State(r.State)))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "query service",
+			zap.String("name", name),
+			zap.Stringer("state", State(r.State)))
 		return Unknown, err
 	}
 
@@ -174,10 +176,10 @@ var timeout = Timeout
 
 func (m *Manager) Start(name string) error {
 	e, err := m.IsExist(name)
-	logger.DebugCtx(m.ctx, err, "check exist",
-		zap.String("name", name),
-		zap.Bool("exist", e))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check exist",
+			zap.String("name", name),
+			zap.Bool("exist", e))
 		return err
 	}
 	if !e {
@@ -185,10 +187,10 @@ func (m *Manager) Start(name string) error {
 	}
 
 	running, err := m.IsRunning(name)
-	logger.DebugCtx(m.ctx, err, "check running",
-		zap.String("name", name),
-		zap.Bool("running", running))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check running",
+			zap.String("name", name),
+			zap.Bool("running", running))
 		return err
 	}
 	if running {
@@ -196,9 +198,9 @@ func (m *Manager) Start(name string) error {
 	}
 
 	s, err := m.openService(name)
-	logger.DebugCtx(m.ctx, err, "open service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "open service",
+			zap.String("name", name))
 		return err
 	}
 	defer func() {
@@ -206,9 +208,9 @@ func (m *Manager) Start(name string) error {
 	}()
 
 	err = s.Start()
-	logger.DebugCtx(m.ctx, err, "start service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "start service",
+			zap.String("name", name))
 		return err
 	}
 
@@ -216,10 +218,10 @@ func (m *Manager) Start(name string) error {
 	select {
 	case <-t.C:
 		running, err = m.IsRunning(name)
-		logger.DebugCtx(m.ctx, err, "check running",
-			zap.String("name", name),
-			zap.Bool("running", running))
 		if err != nil {
+			logger.ErrorCtx(m.ctx, err, "check running",
+				zap.String("name", name),
+				zap.Bool("running", running))
 			return err
 		}
 		if running {
@@ -235,10 +237,10 @@ func (m *Manager) Start(name string) error {
 
 func (m *Manager) Stop(name string) error {
 	e, err := m.IsExist(name)
-	logger.DebugCtx(m.ctx, err, "check exist",
-		zap.String("name", name),
-		zap.Bool("exist", e))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check exist",
+			zap.String("name", name),
+			zap.Bool("exist", e))
 		return err
 	}
 	if !e {
@@ -246,10 +248,10 @@ func (m *Manager) Stop(name string) error {
 	}
 
 	stopped, err := m.IsStopped(name)
-	logger.DebugCtx(m.ctx, err, "check stopped",
-		zap.String("name", name),
-		zap.Bool("stopped", stopped))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check stopped",
+			zap.String("name", name),
+			zap.Bool("stopped", stopped))
 		return err
 	}
 	if stopped {
@@ -257,9 +259,9 @@ func (m *Manager) Stop(name string) error {
 	}
 
 	s, err := m.openService(guest.ServiceName)
-	logger.DebugCtx(m.ctx, err, "open service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "open service",
+			zap.String("name", name))
 		return err
 	}
 	defer func() {
@@ -267,9 +269,9 @@ func (m *Manager) Stop(name string) error {
 	}()
 
 	_, err = s.Control(svc.Stop)
-	logger.DebugCtx(m.ctx, err, "stop service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "stop service",
+			zap.String("name", name))
 		return err
 	}
 
@@ -277,10 +279,10 @@ func (m *Manager) Stop(name string) error {
 	select {
 	case <-t.C:
 		stopped, err = m.IsStopped(name)
-		logger.DebugCtx(m.ctx, err, "check stopped",
-			zap.String("name", name),
-			zap.Bool("stopped", stopped))
 		if err != nil {
+			logger.ErrorCtx(m.ctx, err, "check stopped",
+				zap.String("name", name),
+				zap.Bool("stopped", stopped))
 			return err
 		}
 		if stopped {
@@ -296,10 +298,10 @@ func (m *Manager) Stop(name string) error {
 
 func (m *Manager) Create(path, name, displayName, description string, args ...string) error {
 	e, err := m.IsExist(name)
-	logger.DebugCtx(m.ctx, err, "check exist",
-		zap.String("name", name),
-		zap.Bool("exist", e))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check exist",
+			zap.String("name", name),
+			zap.Bool("exist", e))
 		return err
 	}
 	if e {
@@ -308,13 +310,13 @@ func (m *Manager) Create(path, name, displayName, description string, args ...st
 
 	c := mgr.Config{DisplayName: displayName, StartType: mgr.StartAutomatic, Description: description}
 	_, err = m.mgr.CreateService(name, path, c, args...)
-	logger.DebugCtx(m.ctx, err, "create service",
-		zap.String("path", path),
-		zap.String("name", name),
-		zap.String("displayName", displayName),
-		zap.String("description", description),
-		zap.Strings("args", args))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "create service",
+			zap.String("path", path),
+			zap.String("name", name),
+			zap.String("displayName", displayName),
+			zap.String("description", description),
+			zap.Strings("args", args))
 		return err
 	}
 
@@ -323,10 +325,10 @@ func (m *Manager) Create(path, name, displayName, description string, args ...st
 
 func (m *Manager) Delete(name string) (err error) {
 	e, err := m.IsExist(name)
-	logger.DebugCtx(m.ctx, err, "check exist",
-		zap.String("name", name),
-		zap.Bool("exist", e))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "check exist",
+			zap.String("name", name),
+			zap.Bool("exist", e))
 		return
 	}
 	if !e {
@@ -334,9 +336,9 @@ func (m *Manager) Delete(name string) (err error) {
 	}
 
 	s, err := m.openService(name)
-	logger.DebugCtx(m.ctx, err, "open service",
-		zap.String("name", name))
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "open service",
+			zap.String("name", name))
 		return err
 	}
 	defer func() {
@@ -344,8 +346,10 @@ func (m *Manager) Delete(name string) (err error) {
 	}()
 
 	err = s.Delete()
-	logger.DebugCtx(m.ctx, err, "delete service",
-		zap.String("name", name))
+	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "delete service",
+			zap.String("name", name))
+	}
 
 	return
 }

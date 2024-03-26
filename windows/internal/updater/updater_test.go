@@ -482,7 +482,7 @@ func (s *updaterTests) TestCheck() {
 
 		// mock online
 		resp := httpmock.NewStringResponder(http.StatusOK, t.online)
-		httpmock.RegisterResponder(http.MethodGet, guestAgentLatest, resp)
+		httpmock.RegisterResponder(http.MethodGet, GuestAgentLatest, resp)
 		httpmock.ActivateNonDefault(s.updater.hclient.GetClient())
 
 		state, err := s.updater.Check()
@@ -571,7 +571,7 @@ func (s *updaterTests) TestUpdate() {
 		} else {
 			resp = httpmock.NewStringResponder(http.StatusOK, "")
 		}
-		httpmock.RegisterResponder(http.MethodGet, guestAgentLatest, resp)
+		httpmock.RegisterResponder(http.MethodGet, GuestAgentLatest, resp)
 		httpmock.ActivateNonDefault(s.updater.hclient.GetClient())
 
 		// mock repo
@@ -759,7 +759,7 @@ func (s *updaterTests) TestGetLatest() {
 		s.updater.ctx = t.ctx
 
 		v := httpmock.NewStringResponder(t.retStatus, t.retVer)
-		httpmock.RegisterResponder(http.MethodGet, guestAgentLatest, v)
+		httpmock.RegisterResponder(http.MethodGet, GuestAgentLatest, v)
 		httpmock.ActivateNonDefault(s.updater.hclient.GetClient())
 
 		gotVer, err := s.updater.getLatest()
@@ -792,7 +792,7 @@ func (s *updaterTests) TestDownloadVersion() {
 
 		// http mock
 		urlAgent := fmt.Sprintf(`%v/yandexcloud-guestagent/release/%v/%v/%v/%v`,
-			versionRemoteEndpoint, t.ver, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
+			VersionRemoteEndpoint, t.ver, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
 		respAgent := httpmock.NewStringResponder(t.status, "I R AGENT CONTENT")
 
 		urlChecksum := joinWithDots(urlAgent, checksumSuffix)
@@ -850,13 +850,13 @@ func (s *updaterTests) TestEnsureLatestAdded() {
 		respLatest := httpmock.NewStringResponder(t.httpStatus, t.httpVer)
 
 		urlAgent := fmt.Sprintf(`%v/yandexcloud-guestagent/release/%v/%v/%v/%v`,
-			versionRemoteEndpoint, t.httpVer, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
+			VersionRemoteEndpoint, t.httpVer, runtime.GOOS, runtime.GOARCH, guest.AgentExecutable)
 		respAgent := httpmock.NewStringResponder(t.httpStatus, "I R AGENT CONTENT")
 
 		urlChecksum := joinWithDots(urlAgent, checksumSuffix)
 		respChecksum := httpmock.NewStringResponder(t.httpStatus, "I R CHECKSUM")
 
-		httpmock.RegisterResponder(http.MethodGet, guestAgentLatest, respLatest)
+		httpmock.RegisterResponder(http.MethodGet, GuestAgentLatest, respLatest)
 		httpmock.RegisterResponder(http.MethodGet, urlAgent, respAgent)
 		httpmock.RegisterResponder(http.MethodGet, urlChecksum, respChecksum)
 		httpmock.ActivateNonDefault(s.updater.hclient.GetClient())

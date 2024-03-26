@@ -138,9 +138,11 @@ func (m *Manager) ensureAuthorizedKeysFile(username string, userSshDir string) (
 	if errors.Is(err, fs.ErrNotExist) {
 		_, err := m.fs.Create(authorizedKeysFile)
 		if err != nil {
+			logger.ErrorCtx(m.ctx, err, "create user authorized_keys file",
+				zap.String("username", username))
 			return "", err
 		}
-		logger.DebugCtx(m.ctx, err, "created user authorized_keys file",
+		logger.DebugCtx(m.ctx, nil, "created user authorized_keys file",
 			zap.String("username", username))
 	}
 	return authorizedKeysFile, nil
@@ -150,12 +152,12 @@ func (m *Manager) ensureSshFolder(homedir string, err error) (string, error) {
 	userSshDir := path.Join(homedir, ".ssh")
 	info, err := m.fs.Stat(userSshDir)
 	if errors.Is(err, fs.ErrNotExist) {
-		logger.DebugCtx(m.ctx, err, "no user .ssh dir",
+		logger.ErrorCtx(m.ctx, err, "no user .ssh dir",
 			zap.String("homedir", homedir))
 		err := m.fs.Mkdir(userSshDir, 0700)
-		logger.DebugCtx(m.ctx, err, "created user .ssh dir",
-			zap.String("homedir", homedir))
 		if err != nil {
+			logger.ErrorCtx(m.ctx, err, "created user .ssh dir",
+				zap.String("homedir", homedir))
 			return "", err
 		}
 	} else {
@@ -186,25 +188,25 @@ func (m *Manager) appendKey(homedir string, sshKey string, err error, authorized
 
 	err = readFile.Close()
 	if err != nil {
+		logger.ErrorCtx(m.ctx, err, "add key for user",
+			zap.String("homedir", homedir),
+			zap.String("sshKey", sshKey),
+		)
 		return err
 	}
 	if !found {
 		lines = append(lines, sshKey)
-		logger.DebugCtx(m.ctx, err, "added key for user",
-			zap.String("homedir", homedir),
-			zap.String("sshKey", sshKey),
-		)
 		file, err := m.fs.OpenFile(authorizedKeysFile, os.O_RDWR|os.O_CREATE, 0600)
 		if err != nil {
 			return err
 		}
 
 		_, err = file.Write([]byte(strings.Join(lines, "\n") + "\n"))
-		logger.DebugCtx(m.ctx, err, "written authorized_keys",
-			zap.String("homedir", homedir),
-			zap.String("sshKey", sshKey),
-		)
 		if err != nil {
+			logger.ErrorCtx(m.ctx, err, "written authorized_keys",
+				zap.String("homedir", homedir),
+				zap.String("sshKey", sshKey),
+			)
 			return err
 		}
 		err = file.Close()

@@ -77,15 +77,15 @@ func (s *Server) Install() (err error) {
 
 	var p string
 	p, err = os.Executable()
-	logger.DebugCtx(s.ctx, err, "get executable path")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "get executable path")
 		return
 	}
 
 	var m svcMgr
 	m, err = getServiceManager()
-	logger.DebugCtx(s.ctx, err, "connect to service manager")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "connect to service manager")
 		return
 	}
 	defer func() {
@@ -97,7 +97,9 @@ func (s *Server) Install() (err error) {
 
 	c := mgr.Config{DisplayName: ServiceName, StartType: mgr.StartAutomatic, Description: ServiceDescription}
 	_, err = m.CreateService(ServiceName, p, c, ServiceArgs)
-	logger.DebugCtx(s.ctx, err, "create service", zap.String("config", fmt.Sprintf("%+v", c)))
+	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "create service", zap.String("config", fmt.Sprintf("%+v", c)))
+	}
 
 	return
 }
@@ -115,8 +117,8 @@ func (s *Server) Uninstall() (err error) {
 
 	var m svcMgr
 	m, err = getServiceManager()
-	logger.DebugCtx(s.ctx, err, "connect to service manager")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "connect to service manager")
 		return
 	}
 	defer func() {
@@ -127,13 +129,15 @@ func (s *Server) Uninstall() (err error) {
 	}()
 
 	var sc svcDeleter
-	logger.DebugCtx(s.ctx, err, "open service")
 	if sc, err = getServiceDeleter(m); err != nil {
+		logger.ErrorCtx(s.ctx, err, "open service")
 		return
 	}
 
 	err = sc.Delete()
-	logger.DebugCtx(s.ctx, err, "delete service")
+	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "delete service")
+	}
 
 	return
 }
@@ -145,15 +149,15 @@ func (s *Server) start() error {
 	logger.InfoCtx(s.ctx, nil, "start agent")
 
 	err := initRegistry(s.ctx)
-	logger.DebugCtx(s.ctx, err, "init registry",
-		zap.String("registry HKLM relative path", windowsKeyRegPath))
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "init registry",
+			zap.String("registry HKLM relative path", windowsKeyRegPath))
 		return err
 	}
 
 	err = startHeartbeat(s.ctx)
-	logger.DebugCtx(s.ctx, err, "start heartbeat")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "start heartbeat")
 		return err
 	}
 
@@ -169,8 +173,8 @@ var createRegistryKey = func() (bool, error) { return registry.CreateKey(windows
 // initRegistry checks and creates registry key at windowsKeyRegPath.
 func initRegistry(ctx context.Context) error {
 	existed, err := createRegistryKey()
-	logger.DebugCtx(ctx, err, "check or create registry key")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "check or create registry key")
 		return err
 	}
 	if existed {
@@ -192,13 +196,15 @@ var createHeartbeatSerialTicker = func(ctx context.Context) (starter, error) {
 // startHeartbeat starts to send heartbeat messages to serial port.
 func startHeartbeat(ctx context.Context) error {
 	hb, err := createHeartbeatSerialTicker(ctx)
-	logger.DebugCtx(ctx, err, "create heartbeat ticker")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "create heartbeat ticker")
 		return err
 	}
 
 	err = hb.Start()
-	logger.DebugCtx(ctx, err, "start heartbeat")
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "start heartbeat")
+	}
 
 	return err
 }
@@ -226,7 +232,7 @@ func (s *Server) stop() (err error) {
 		logger.DebugCtx(s.ctx, nil, "context closed")
 	case <-time.After(stopTimeout):
 		err = ErrStopTimeout
-		logger.DebugCtx(s.ctx, err, "gave up waiting for context close")
+		logger.ErrorCtx(s.ctx, err, "gave up waiting for context close")
 	}
 
 	return
@@ -240,8 +246,8 @@ func (s *Server) wait() {
 // Run start agent and handles OS or Service Manger's signals/events.
 func (s *Server) Run() error {
 	err := s.start()
-	logger.DebugCtx(s.ctx, err, "start server")
 	if err != nil {
+		logger.ErrorCtx(s.ctx, err, "start server")
 		return err
 	}
 
@@ -264,13 +270,13 @@ func (s *Server) Run() error {
 
 	if s.asService {
 		h := handler{s: s}
-		logger.DebugCtx(s.ctx, err, "start service stub", zap.String("config", fmt.Sprintf("%+v", h)))
+		logger.DebugCtx(s.ctx, nil, "start service stub", zap.String("config", fmt.Sprintf("%+v", h)))
 
 		err = watchManagerEvents(ServiceName, &h)
-		logger.DebugCtx(s.ctx, err, "server exited")
 		if err == nil {
+			logger.ErrorCtx(s.ctx, err, "server exited")
 			err = s.lastErr
-			logger.DebugCtx(s.ctx, err, "check additional errors")
+			logger.ErrorCtx(s.ctx, err, "check additional errors")
 		}
 	} else {
 		logger.DebugCtx(s.ctx, nil, "started from console")

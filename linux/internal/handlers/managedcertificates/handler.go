@@ -20,7 +20,7 @@ import (
 const handlerName = "managed_certificates_handler"
 
 // DefaultMetadataURL contain URL which polled for Managed Certificates to file mapping.
-const DefaultMetadataURL = "http://metadata.google.internal/computeMetadata/v1/instance/attributes/managed-certificates"
+const DefaultMetadataURL = "http://169.254.169.254/computeMetadata/v1/instance/attributes/managed-certificates"
 
 // serialPort is interface for read or write to serial port.
 var serialPort = serial.NewBlockingWriter()
@@ -43,8 +43,8 @@ var lastProcessedSha []byte
 // Handle passes mapping of Managed Certificates on file paths to 'process' function and writes result to serial port.
 func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 	err := ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 	dataSha := sha256.Sum256(data)
@@ -54,7 +54,9 @@ func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 
 	var resp response
 	resp, err = process(ctx, data)
-	logger.DebugCtx(ctx, err, "processed request")
+	if err != nil {
+		logger.ErrorCtx(ctx, err, "processed request")
+	}
 
 	runtime.GC()
 	debug.FreeOSMemory()
@@ -64,10 +66,10 @@ func (h *ManagedCertificatesHandler) Handle(ctx context.Context, data []byte) {
 	e.WithTimestamp(time.Now()).WithType(ManagedCertificatesResponseType)
 
 	err = serialPort.WriteJSON(e.Wrap(resp))
-	logger.DebugCtx(ctx, err, "writing to serial port",
-		zap.String("response", fmt.Sprint(resp)),
-		zap.String("envelope", fmt.Sprint(e)))
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "writing to serial port",
+			zap.String("response", fmt.Sprint(resp)),
+			zap.String("envelope", fmt.Sprint(e)))
 		return
 	}
 	lastProcessedSha = dataSha[:]
@@ -82,15 +84,15 @@ func process(ctx context.Context, data []byte) (res response, err error) {
 	}()
 
 	err = ctx.Err()
-	logger.DebugCtx(ctx, err, "checked deadline or context cancellation")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "checked deadline or context cancellation")
 		return
 	}
 
 	mngr := cm.New(ctx)
 	msg, err := parse(data)
-	logger.DebugCtx(ctx, err, "parsing certificates from metadata")
 	if err != nil {
+		logger.ErrorCtx(ctx, err, "parsing certificates from metadata")
 		return
 	}
 

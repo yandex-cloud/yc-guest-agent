@@ -77,8 +77,8 @@ func (c *Client) R() *resty.Request {
 
 func (c *Client) Download(filepath, url string) error {
 	r, err := c.R().SetOutput(filepath).Get(url)
-	logger.DebugCtx(c.ctx, err, "download", zap.String("url", url), zap.String("filepath", filepath))
 	if err != nil {
+		logger.ErrorCtx(c.ctx, err, "download", zap.String("url", url), zap.String("filepath", filepath))
 		return err
 	}
 	if r.IsError() {
@@ -90,9 +90,9 @@ func (c *Client) Download(filepath, url string) error {
 
 func (c *Client) Downloader(w io.Writer, url string) error {
 	r, err := c.R().SetDoNotParseResponse(true).Get(url)
-	logger.DebugCtx(c.ctx, err, "download",
-		zap.String("url", url))
 	if err != nil {
+		logger.ErrorCtx(c.ctx, err, "download",
+			zap.String("url", url))
 		return err
 	}
 	if r.IsError() {

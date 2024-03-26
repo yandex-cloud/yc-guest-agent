@@ -42,8 +42,8 @@ func (c *YcClient) Decode(keyId string, ciphertext string) ([]byte, error) {
 			KeyId:      keyId,
 			Ciphertext: decoded,
 		})
-	logger.DebugCtx(c.ctx, err, "decrypted the secret", zap.String("keyId", keyId))
 	if err != nil {
+		logger.ErrorCtx(c.ctx, err, "decrypted the secret", zap.String("keyId", keyId))
 		return nil, err
 	}
 	return decrypt.Plaintext, nil
