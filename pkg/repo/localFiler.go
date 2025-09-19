@@ -341,11 +341,15 @@ func (l *LocalFiler) getFilehash(path string) (hash string, err error) {
 		logger.ErrorCtx(l.ctx, err, "open file", zap.String("path", path))
 		return
 	}
+
 	defer func() {
-		fErr := f.Close()
+		errClose := f.Close()
+		if errClose != nil {
+			logger.ErrorCtx(l.ctx, errClose, "closing file", zap.String("path", path))
+		}
+
 		if err == nil {
-			logger.ErrorCtx(l.ctx, fErr, "close file", zap.String("path", path))
-			err = fErr
+			err = errClose
 		}
 	}()
 
@@ -361,31 +365,31 @@ func (l *LocalFiler) getFilehash(path string) (hash string, err error) {
 }
 
 func (l *LocalFiler) copy(dst, src string) (err error) {
+
+	closeFile := func(file afero.File, errMsg, path string) {
+		errClose := file.Close()
+		if errClose != nil {
+			logger.ErrorCtx(l.ctx, errClose, errMsg, zap.String("path", path))
+		}
+
+		if err == nil {
+			err = errClose
+		}
+	}
+
 	s, err := l.fs.Open(src)
 	if err != nil {
 		logger.ErrorCtx(l.ctx, err, "open file", zap.String("path", src))
 		return
 	}
-	defer func() {
-		errClose := s.Close()
-		if err == nil {
-			logger.ErrorCtx(l.ctx, errClose, "close file", zap.String("path", src))
-			err = errClose
-		}
-	}()
+	defer closeFile(s, "closing source file", src)
 
 	d, err := l.fs.Create(dst)
 	if err != nil {
 		logger.ErrorCtx(l.ctx, err, "create file", zap.String("path", dst))
 		return
 	}
-	defer func() {
-		errClose := d.Close()
-		if err == nil {
-			logger.ErrorCtx(l.ctx, errClose, "close file", zap.String("path", dst))
-			err = errClose
-		}
-	}()
+	defer closeFile(d, "closing destination file", dst)
 
 	_, err = io.Copy(d, s)
 	if err != nil {
