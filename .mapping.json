@@ -68,6 +68,7 @@
   "pkg/repo/localFiler.go":"opensource/yc-guest-agent/pkg/repo/localFiler.go",
   "pkg/repo/localFiler_test.go":"opensource/yc-guest-agent/pkg/repo/localFiler_test.go",
   "pkg/serial/serial.go":"opensource/yc-guest-agent/pkg/serial/serial.go",
+  "pkg/serial/serial_test.go":"opensource/yc-guest-agent/pkg/serial/serial_test.go",
   "test/goreleaser/artifact.go":"opensource/yc-guest-agent/test/goreleaser/artifact.go",
   "test/linux/cert/cloud-init.tmpl.yaml":"opensource/yc-guest-agent/test/linux/cert/cloud-init.tmpl.yaml",
   "test/linux/cert/main.tf":"opensource/yc-guest-agent/test/linux/cert/main.tf",

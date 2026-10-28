@@ -109,8 +109,10 @@ func (s *logWriterTests) TestSerialWriter() {
 	serialPort = p
 
 	j := new(serialJSONWriter)
-	_, err := j.Write([]byte(`{"field":"ophelia"}`))
+	data := []byte(`{"field":"ophelia"}`)
+	n, err := j.Write(data)
 	s.NoError(err)
+	s.Equal(len(data), n)
 
 	bs, ok := p.Calls[0].Arguments.Get(0).([]byte)
 	s.True(ok)

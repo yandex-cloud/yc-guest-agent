@@ -14,6 +14,8 @@ var once sync.Once
 
 var port io.WriteCloser
 
+var writeLock sync.Mutex
+
 const portBaud = 115200
 
 const maxRetries = 10
@@ -38,11 +40,9 @@ func Init(portName string) (err error) {
 
 var ErrNotInitialized = errors.New("accessed methods of uninitialized port")
 
-type blockingPort struct {
-	wl sync.Mutex
-}
+type serialWriter struct{}
 
-func (p *blockingPort) Close() error {
+func (p *serialWriter) Close() error {
 	if port == nil {
 		return ErrNotInitialized
 	}
@@ -50,18 +50,30 @@ func (p *blockingPort) Close() error {
 	return port.Close()
 }
 
-func (p *blockingPort) Write(bs []byte) (int, error) {
+func (p *serialWriter) Write(bs []byte) (int, error) {
 	if port == nil {
 		return 0, ErrNotInitialized
 	}
 
-	p.wl.Lock()
-	defer p.wl.Unlock()
+	writeLock.Lock()
+	defer writeLock.Unlock()
 
-	return port.Write(bs)
+	written := 0
+	for written < len(bs) {
+		n, err := port.Write(bs[written:])
+		written += n
+		if err != nil {
+			return written, err
+		}
+		if n == 0 {
+			return written, io.ErrShortWrite
+		}
+	}
+
+	return written, nil
 }
 
-func (p *blockingPort) WriteJSON(j interface{}) error {
+func (p *serialWriter) WriteJSON(j interface{}) error {
 	if port == nil {
 		return ErrNotInitialized
 	}
@@ -81,5 +93,5 @@ type BlockingWriter interface {
 }
 
 func NewBlockingWriter() BlockingWriter {
-	return new(blockingPort)
+	return new(serialWriter)
 }

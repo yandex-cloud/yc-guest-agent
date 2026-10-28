@@ -20,7 +20,11 @@ func (serialJSONWriter) Write(d []byte) (n int, err error) {
 		return
 	}
 
-	return serialPort.Write(append(bs, []byte("\n")...))
+	if _, err = serialPort.Write(append(bs, []byte("\n")...)); err != nil {
+		return 0, err
+	}
+
+	return len(d), nil
 }
 
 // noopSyncerCloser is noop wrapper to make zap.Sink from io.Writer.
